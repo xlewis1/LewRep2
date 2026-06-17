@@ -18,6 +18,7 @@ struct Config {
     count_only: bool,
     unrestricted_level: usize,
     explain_mode: bool,
+    no_filename: bool,
 }
 
 fn main() {
@@ -49,6 +50,7 @@ fn main() {
     let mut count_only = false;
     let mut unrestricted_level = 0;
     let mut explain_mode = false;
+    let mut no_filename = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
@@ -70,6 +72,7 @@ fn main() {
                     'c' => count_only = true,
                     'u' => unrestricted_level += 1,
                     'X' => explain_mode = true,
+                    'h' => no_filename = true,
                     _ => {
                        eprintln!("Error: Unknown flag '-{}'", c);
                        std::process::exit(1); 
@@ -103,6 +106,7 @@ fn main() {
         count_only,
         unrestricted_level,
         explain_mode,
+        no_filename,
     };
 
     let mut target_files = Vec::new();
@@ -146,6 +150,7 @@ struct CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
     explain_mode: bool,
     pattern: String,
     ignore_case: bool,
+    no_filename: bool,
 }
 
 impl<F> CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
@@ -217,18 +222,22 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
 
         if self.show_line_numbers {
             if let Some(line_num) = mat.line_number() {
-                Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-                write!(out, ":")?;
+                if !self.no_filename {
+                   Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                   write!(out, ":")?; 
+                }
                 Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
                 write!(out, ": ")?;
                 colored_line.write_to(&mut out)?;
                 write!(out, "\n")?;
             }
         } else {
-           Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-           write!(out, ": ")?;
-           colored_line.write_to(&mut out)?;
-           write!(out, "\n")?;      
+           if !self.no_filename {
+              Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+              write!(out, ": ")?;
+            }
+            colored_line.write_to(&mut out)?;
+            write!(out, "\n")?;      
         }
         
         if self.explain_mode {
@@ -254,16 +263,20 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
 
         if self.show_line_numbers {
             if let Some(line_num) = mat.line_number() {
-                Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-                write!(out, "-")?;
+                if !self.no_filename {
+                   Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                   write!(out, "-")?; 
+                }
                 Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
                 write!(out, "- ")?;
                 colored_line.write_to(&mut out)?;
                 write!(out, "\n")?;
             }
         } else {
-            Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-            write!(out, "- ")?;
+            if !self.no_filename {
+               Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+               write!(out, "- ")?; 
+            }
             colored_line.write_to(&mut out)?;
             write!(out, "\n")?;
         }
@@ -318,14 +331,18 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         explain_mode: config.explain_mode,
         pattern: config.pattern.clone(),
         ignore_case: config.ignore_case,
+        no_filename: config.no_filename,
     };
 
     searcher.search_file(&matcher, &file, &mut sink)?;
 
     if config.count_only && sink.match_count > 0 {
         let mut out = io::stdout().lock();
-        Coloured::new(&sink.file_name, Colour::Purple).write_to(&mut out)?;
-        let _ = writeln!(out, ":{}", sink.match_count);
+        if !config.no_filename {
+            Coloured::new(&sink.file_name, Colour::Purple).write_to(&mut out)?;
+            write!(out, ":")?;
+        }
+        let _ = writeln!(out, "{}", sink.match_count);
     }
 
     Ok(())
