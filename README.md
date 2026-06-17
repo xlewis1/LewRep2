@@ -1,6 +1,6 @@
 # lewrep2 🏎️💨
 
-`lewrep2` is a high-performance, cross-platform CLI text search utility built in Rust that recursively scans directories for patterns with absolute minimal overhead. By leveraging the industry-proven, production-grade ecosystem that powers ripgrep (`grep-searcher`, `grep-regex`, and `ignore`), `lewrep2` drops traditional initialization bloat to deliver near-instantaneous search results.
+`lewrep2` is a high-performance, cross-platform CLI text search utility built in Rust that recursively scans directories for patterns with absolute minimal overhead. By leveraging the industry-proven, production-grade ecosystem that powers ripgrep (`grep-searcher`, `grep-regex`, and `ignore`, and my own open source colour crate `lewcolour`), `lewrep2` drops traditional initialization bloat to deliver near-instantaneous search results.
 
 Engineered to seamlessly handle complex pipelines, it fully supports standard UNIX piping constraints, allowing you to fluidly pass data into and out of core system utilities like `grep`, `ripgrep`, `tree`, `cat`, `ls`, and more.
 
@@ -18,6 +18,8 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * **Production-Grade Engine Room:** Built directly on top of the `grep-searcher` and `grep-regex` crates—the exact same underlying hardware-accelerated libraries developed to power `ripgrep`.
 * **Zero-Copy Architecture Available:** Utilizes optimized buffer strategies and optional native OS memory mapping (`Mmap`) to stream file chunks efficiently.
 * **Smart Traversal:** Blazes through file structures using the `ignore` crate to automatically respect `.gitignore` rules, concurrently driven by a parallel `rayon` thread pool.
+
+* Uses my first ever rust crate made for terminal colours in rust lewcolour (feel free to fork that and add any colour you wish to add)
 
 ## 🚀 Features & Flags
 
