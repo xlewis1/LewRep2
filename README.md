@@ -30,6 +30,7 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * `-l` - Filenames-only short-circuit mode (exits the millisecond a match is found in a file).
 * `-I` - Explicit ignore configurations / overrides.
 * `-A` - Context control (displays lines trailing after a match).
+* `-h` - Removes filename from file search (can be used with -n to create -hn).
 
 ## 🐛 Bug Reports
 
