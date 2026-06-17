@@ -1,4 +1,4 @@
-# lewrep2 🏎️💨
+# lewrep2 🏎️💨 - # THE NEW GENERATION OF FASTEST GREP TOOL!
 
 `lewrep2` is a high-performance, cross-platform CLI text search utility built in Rust that recursively scans directories for patterns with absolute minimal overhead. By leveraging the industry-proven, production-grade ecosystem that powers ripgrep (`grep-searcher`, `grep-regex`, and `ignore`, and my own open source colour crate `lewcolour`), `lewrep2` drops traditional initialization bloat to deliver near-instantaneous search results.
 
