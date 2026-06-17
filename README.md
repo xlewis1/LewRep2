@@ -19,7 +19,7 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * **Zero-Copy Architecture Available:** Utilizes optimized buffer strategies and optional native OS memory mapping (`Mmap`) to stream file chunks efficiently.
 * **Smart Traversal:** Blazes through file structures using the `ignore` crate to automatically respect `.gitignore` rules, concurrently driven by a parallel `rayon` thread pool.
 
-* Uses my first ever rust crate made for terminal colours in rust lewcolour (feel free to fork that and add any colour you wish to add)
+* lewrep2 uses a custom zero‑overhead colour engine (lewcolour) designed specifically     for high‑performance terminal output.
 
 ## 🚀 Features & Flags
 
