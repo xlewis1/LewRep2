@@ -19,6 +19,7 @@ struct Config {
     unrestricted_level: usize,
     explain_mode: bool,
     no_filename: bool,
+    word_regexp: bool,
 }
 
 fn main() {
@@ -51,6 +52,7 @@ fn main() {
     let mut unrestricted_level = 0;
     let mut explain_mode = false;
     let mut no_filename = false;
+    let mut word_regexp = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
@@ -73,6 +75,7 @@ fn main() {
                     'u' => unrestricted_level += 1,
                     'X' => explain_mode = true,
                     'h' => no_filename = true,
+                    'w' => word_regexp = true,
                     _ => {
                        eprintln!("Error: Unknown flag '-{}'", c);
                        std::process::exit(1); 
@@ -107,6 +110,7 @@ fn main() {
         unrestricted_level,
         explain_mode,
         no_filename,
+        word_regexp,
     };
 
     let mut target_files = Vec::new();
@@ -304,10 +308,17 @@ fn process_stdin(pattern: &str) {
 fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
     let file = File::open(path)?;
 
-    let matcher = match RegexMatcherBuilder::new()
-        .case_insensitive(config.ignore_case)
-        .build(&config.pattern)
-    {
+    let final_pattern = if config.word_regexp {
+        format!(r"\b{}\b", config.pattern)
+    } else {
+        config.pattern.clone()
+    };
+
+    let mut matcher_builder = RegexMatcherBuilder::new();
+    matcher_builder.case_insensitive(config.ignore_case);
+  
+
+    let matcher = match matcher_builder.build(&final_pattern) {
         Ok(m) => m,
         Err(e) => return Err(io::Error::new(io::ErrorKind::InvalidInput, e)),
     };
