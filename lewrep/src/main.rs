@@ -4,7 +4,7 @@ use grep_searcher::{SearcherBuilder, Sink, SinkMatch};
 use ignore::WalkBuilder;
 use rayon::prelude::*;
 use std::fs::File;
-use std::io::{self, stdin, BufRead, BufReader, IsTerminal, Write};
+use std::io::{self, stdin, BufRead, BufReader, IsTerminal, Write, Read};
 use std::path::{Path, PathBuf};
 
 struct Config {
@@ -22,6 +22,7 @@ struct Config {
     word_regexp: bool,
     tree_view: bool,
     delete_colour: bool,
+    hide_all: bool,
 }
 
 fn main() {
@@ -57,9 +58,15 @@ fn main() {
     let mut word_regexp = false;
     let mut tree_view = false;
     let mut delete_colour = false;
+    let mut hide_all = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
+        if arg == "--Hide" {
+            hide_all = true;
+            continue;
+        }
+
         if arg.starts_with('-') && arg.len() > 1 {
             if arg == "-A" {
                 if let Some(num_str) = args_iter.next() {
@@ -119,29 +126,44 @@ fn main() {
         word_regexp,
         tree_view,
         delete_colour,
+        hide_all,
     };
 
     let mut target_files = Vec::new();
     for path in paths {
        let mut walker_builder = WalkBuilder::new(path);
        
-       if config.unrestricted_level >= 1 {
-           walker_builder.hidden(false);
-        } else {
-           walker_builder.hidden(true);
-        }
+       if config.hide_all {
+          walker_builder.hidden(true);
+          walker_builder.git_ignore(true);
+          walker_builder.parents(true);
+       } else {
+           if config.unrestricted_level >= 1 {
+             walker_builder.hidden(false);
+            } else {
+              walker_builder.hidden(true);
+            }
 
-        if config.unrestricted_level >= 2 || config.explicit_ignore {
-            walker_builder.git_ignore(false);
-        } else {
-            walker_builder.git_ignore(true);
-        }
+            if config.unrestricted_level >= 2 || config.explicit_ignore {
+               walker_builder.git_ignore(false);
+            } else {
+               walker_builder.git_ignore(true);
+            }
 
+        }
 
         let walker = walker_builder.build();
 
         for entry in walker.flatten() {
             if entry.file_type().map_or(false, |ft| ft.is_file()) {
+                // Skips processing known structural paths matching typical binary format signatures
+                if config.hide_all {
+                    if let Some(ext) = entry.path().extension() {
+                        if ext == "bin" || ext == "exe" || ext == "o" || ext == "a" {
+                            continue;
+                        }
+                    }
+                }
                 target_files.push(entry.into_path());
             }
         }
@@ -344,6 +366,19 @@ fn process_stdin(pattern: &str) {
 }
 
 fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
+
+    if config.hide_all {
+        if let Ok(mut file) = File::open(path) {
+            let mut buffer = [0; 1024];
+            // Passing &mut file directly avoids the Read/Write by_ref collision
+            if let Ok(bytes_read) = file.take(1024).read(&mut buffer) {
+                if buffer[..bytes_read].iter().any(|&b| b == 0) {
+                    return Ok(());
+                }
+            }
+        }
+    }
+
     let file = File::open(path)?;
 
     let final_pattern = if config.word_regexp {
