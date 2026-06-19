@@ -30,6 +30,7 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * `-l` - Filenames-only short-circuit mode (exits the millisecond a match is found in a file).
 * `-I` - Explicit ignore configurations / overrides.
 * `-A` - Context control (displays lines trailing after a match).
+* `-d` - Deletes orange ANSI colour for text and replaces it with white text.
 
 ## 🐛 Bug Reports
 
