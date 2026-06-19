@@ -32,10 +32,11 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * `-A` - Context control (displays lines trailing after a match).
 * `-d` - Deletes orange ANSI colour for text and replaces it with white text (Grep format).
 * `-c` - Counts only the amount of times a certain word is mentioned in text.
-* `-u` - restricted mode can scan `.gitignore`, binaries, hidden files (-u hides `.gitignore`) (-uu shows `.gitingore`) and (-uuu shows everything).
+* `-u` - restricted mode can scan `.gitignore`, binaries, hidden files.
 * `-T` - shows tree input for your text searches (exclusive to lewrep2).
 * `-X` - explains the search (exclusive to lewrep2).
 * `-h` - removes the filename of your search.
+* `--Hide` - hides `.gitignore`, `binary`, and hidden files (opposite flag to `-u`).
 
 ## 🐛 Bug Reports
 
