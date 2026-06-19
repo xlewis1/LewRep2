@@ -52,7 +52,7 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 Developed with 🦀 by **xlewis1**.
 
 ## P.S
-this program uses grep_regex, grep-searcher, walkbuilder, ignore which all belong to `burntsushi`
+this program uses grep_regex, grep-searcher, walkbuilder, ignore which all belong to burntsushi
 
 ## 🛠️ Installation & Building
 
