@@ -30,6 +30,12 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * `-l` - Filenames-only short-circuit mode (exits the millisecond a match is found in a file).
 * `-I` - Explicit ignore configurations / overrides.
 * `-A` - Context control (displays lines trailing after a match).
+* `-d` - Deletes orange ANSI colour for text and replaces it with white text (Grep format).
+* `-c` - Counts only the amount of times a certain word is mentioned in text.
+* `-u` - restricted mode can scan `.gitignore`, binaries, hidden files (-u hides `.gitignore`) (-uu shows `.gitingore`) and (-uuu shows everything).
+* `-T` - shows tree input for your text searches (exclusive to lewrep2).
+* `-X` - explains the search (exclusive to lewrep2).
+* `-h` - removes the filename of your search.
 
 ## 🐛 Bug Reports
 
@@ -44,6 +50,9 @@ Got feature requests, optimizations, or ideas to make `lewrep2` even faster? Fee
 This project is licensed under the MIT License - see the `LICENSE` file for details.
 
 Developed with 🦀 by **xlewis1**.
+
+## P.S
+this program uses grep_regex, grep-searcher, walkbuilder, ignore which all belong to burntsushi
 
 ## 🛠️ Installation & Building
 
