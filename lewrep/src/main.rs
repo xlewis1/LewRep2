@@ -20,6 +20,8 @@ struct Config {
     explain_mode: bool,
     no_filename: bool,
     word_regexp: bool,
+    tree_view: bool,
+    delete_colour: bool,
 }
 
 fn main() {
@@ -53,6 +55,8 @@ fn main() {
     let mut explain_mode = false;
     let mut no_filename = false;
     let mut word_regexp = false;
+    let mut tree_view = false;
+    let mut delete_colour = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
@@ -76,6 +80,8 @@ fn main() {
                     'X' => explain_mode = true,
                     'h' => no_filename = true,
                     'w' => word_regexp = true,
+                    'T' => tree_view = true,
+                    'd' => delete_colour = true,
                     _ => {
                        eprintln!("Error: Unknown flag '-{}'", c);
                        std::process::exit(1); 
@@ -111,6 +117,8 @@ fn main() {
         explain_mode,
         no_filename,
         word_regexp,
+        tree_view,
+        delete_colour,
     };
 
     let mut target_files = Vec::new();
@@ -155,6 +163,9 @@ struct CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
     pattern: String,
     ignore_case: bool,
     no_filename: bool,
+    tree_view: bool,
+    delete_colour: bool,
+    buffered_matches: Vec<(usize, String)>,
 }
 
 impl<F> CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
@@ -222,7 +233,25 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
         let mut out = io::stdout().lock();
 
         let clean_line = String::from_utf8_lossy(mat.bytes()).trim_end_matches(['\r', '\n']).to_string();
-        let colored_line = (self.orange_formatter)(&clean_line);
+
+        if self.tree_view {
+            let line_num = mat.line_number().unwrap_or(0) as usize;
+            self.buffered_matches.push((line_num, clean_line));
+
+            if self.explain_mode {
+                self.execute_explanation(mat.bytes());
+            }
+            return Ok(true);
+        }
+
+        let file_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
+        let line_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Magenta };
+
+        let colored_line = if self.delete_colour {
+            Coloured::new(&clean_line, Colour::Rgb(255, 255, 255))
+        } else {
+            (self.orange_formatter)(&clean_line) 
+        };
 
         if self.show_line_numbers {
             if let Some(line_num) = mat.line_number() {
@@ -262,7 +291,16 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
             .unwrap_or("")
             .to_string();
 
-        let colored_line = (self.orange_formatter)(&clean_line);
+
+        let file_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
+        let line_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Magenta };
+
+        let colored_line = if self.delete_colour {
+            Coloured::new(&clean_line, Colour::Rgb(255, 255, 255))
+        } else {
+            (self.orange_formatter)(&clean_line)
+        };
+
         let mut out = io::stdout().lock();
 
         if self.show_line_numbers {
@@ -343,14 +381,60 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         pattern: config.pattern.clone(),
         ignore_case: config.ignore_case,
         no_filename: config.no_filename,
+        tree_view: config.tree_view,
+        delete_colour: config.delete_colour,
+        buffered_matches: Vec::new(),
     };
 
     searcher.search_file(&matcher, &file, &mut sink)?;
+
+    if config.tree_view && !sink.buffered_matches.is_empty() {
+        let mut out = io::stdout().lock();
+        
+        let file_tree_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
+        let line_tree_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Magenta };
+        let leaf_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Orange };
+
+        if !config.delete_colour {
+            Coloured::new("📄 ", Colour::Cyan).write_to(&mut out)?;
+        }
+        Coloured::with_style(&sink.file_name, file_tree_color, Style::bold()).write_to(&mut out)?;
+        let _ = write!(out, "\n");
+     
+        for (i, (line_num, line_text)) in sink.buffered_matches.iter().enumerate() {
+            let is_last = i == sink.buffered_matches.len() - 1;
+            let branch = if is_last { "└── " } else { "├── " };
+            
+            let _ = write!(out, "{}", branch);
+            
+            if config.line_numbers && *line_num > 0 {
+                let _ = write!(out, "[");
+                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
+                let _ = write!(out, "] ");
+            }
+
+            let colored_line = (orange_formatter)(line_text);
+            colored_line.write_to(&mut out)?;
+            let _ = write!(out, "\n");
+        }
+        let _ = write!(out, "\n"); // Extra padding between files
+    }
 
     if config.count_only && sink.match_count > 0 {
         let mut out = io::stdout().lock();
         if !config.no_filename {
             Coloured::new(&sink.file_name, Colour::Purple).write_to(&mut out)?;
+            write!(out, ":")?;
+        }
+        let _ = writeln!(out, "{}", sink.match_count);
+    }
+
+    if config.count_only && sink.match_count > 0 {
+        let mut out = io::stdout().lock();
+        let count_file_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
+
+        if !config.no_filename {
+            Coloured::new(&sink.file_name, count_file_color).write_to(&mut out)?;
             write!(out, ":")?;
         }
         let _ = writeln!(out, "{}", sink.match_count);
