@@ -13,7 +13,7 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 | **Total Process Time** | 0.052s | 0.068s | `lewrep2` is ~23% Faster on micro-scans |
 | **Memory Footprint** | 2.56 MB | 6.09 MB | `lewrep2` uses less than half the RAM |
 
-## Lewrep2 speed and print time via Ubuntu (Linux) ARM
+### 🐧 Linux ARM Performance (Ubuntu 26.04)
 ubuntu@lewlinux:~/lewrep2$ time ./target/release/lewrep2 "Config" .
 ./src/main.r: struct Config {
 ./src/main.r:     let config = Config {
@@ -24,7 +24,9 @@ ubuntu@lewlinux:~/lewrep2$ time ./target/release/lewrep2 "Config" .
 
 real    0m0.004s
 user    0m0.003s
-sys     0m0.001s.
+sys     0m0.001s
+
+Slap those three backticks right under the `sys 0m0.001s` line, and it will instantly fix the layout!
 
 
 ## Why is it so fast?
