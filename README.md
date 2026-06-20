@@ -39,6 +39,7 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * `--Hide` - hides `.gitignore`, `binary`, and hidden files (opposite flag to `-u`).
 * `--vscode` - searches text via `.vscode`.
 * `-j` - reads JSON output.
+* `--manpage` - Shows the official Lewrep2 manpage document.
 
 ## 🐛 Bug Reports
 
