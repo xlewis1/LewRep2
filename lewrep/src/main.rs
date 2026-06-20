@@ -24,6 +24,7 @@ struct Config {
     delete_colour: bool,
     hide_all: bool,
     vscode_include: bool,
+    json_mode: bool,
 }
 
 fn main() {
@@ -61,6 +62,7 @@ fn main() {
     let mut delete_colour = false;
     let mut hide_all = false;
     let mut vscode_include = false;
+    let mut json_mode = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
@@ -96,6 +98,7 @@ fn main() {
                     'w' => word_regexp = true,
                     'T' => tree_view = true,
                     'd' => delete_colour = true,
+                    'j' => json_mode = true,
                     _ => {
                        eprintln!("Error: Unknown flag '-{}'", c);
                        std::process::exit(1); 
@@ -135,6 +138,7 @@ fn main() {
         delete_colour,
         hide_all,
         vscode_include,
+        json_mode,
     };
 
     let mut target_files = Vec::new();
@@ -208,6 +212,7 @@ struct CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
     no_filename: bool,
     tree_view: bool,
     delete_colour: bool,
+    json_mode: bool,
     buffered_matches: Vec<(usize, String)>,
 }
 
@@ -277,6 +282,26 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
 
         let clean_line = String::from_utf8_lossy(mat.bytes()).trim_end_matches(['\r', '\n']).to_string();
 
+        if self.json_mode {
+            let mut out = io::stdout().lock();
+            let line_num = mat.line_number().unwrap_or(0);
+
+            let escaped_line = clean_line.replace('\\', "\\\\").replace('"', "\\\"");
+
+            writeln!(
+                out,
+                r#"{{"type":"match","path":"{}","line_number":{},"text":"{}"}}"#,
+                self.file_name.replace('\\', "\\\\").replace('"', "\\\""),
+                line_num,
+                escaped_line
+            )?;
+
+            if self.explain_mode {
+                self.execute_explanation(mat.bytes());
+            }
+            return Ok(true);
+        }
+
         if self.tree_view {
             let line_num = mat.line_number().unwrap_or(0) as usize;
             self.buffered_matches.push((line_num, clean_line));
@@ -334,6 +359,20 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
             .unwrap_or("")
             .to_string();
 
+        if self.json_mode {
+            let mut out = io::stdout().lock();
+            let line_num = mat.line_number().unwrap_or(0);
+            let escaped_line = clean_line.replace('\\', "\\\\").replace('"', "\\\"");
+            
+            writeln!(
+                out,
+                r#"{{"type":"context","path":"{}","line_number":{},"text":"{}"}}"#,
+                self.file_name.replace('\\', "\\\\").replace('"', "\\\""),
+                line_num,
+                escaped_line
+            )?;
+            return Ok(true);
+        }
 
         let file_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
         let line_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Magenta };
@@ -439,6 +478,7 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         no_filename: config.no_filename,
         tree_view: config.tree_view,
         delete_colour: config.delete_colour,
+        json_mode: config.json_mode,
         buffered_matches: Vec::new(),
     };
 
