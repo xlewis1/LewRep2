@@ -13,6 +13,20 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 | **Total Process Time** | 0.052s | 0.068s | `lewrep2` is ~23% Faster on micro-scans |
 | **Memory Footprint** | 2.56 MB | 6.09 MB | `lewrep2` uses less than half the RAM |
 
+## Lewrep2 speed and print time via Ubuntu (Linux) ARM
+ubuntu@lewlinux:~/lewrep2$ time ./target/release/lewrep2 "Config" .
+./src/main.r: struct Config {
+./src/main.r:     let config = Config {
+./src/main.r: fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
+./src/main.rs: struct Config {
+./src/main.rs:     let config = Config {
+./src/main.rs: fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
+
+real    0m0.004s
+user    0m0.003s
+sys     0m0.001s.
+
+
 ## Why is it so fast?
 
 * **Production-Grade Engine Room:** Built directly on top of the `grep-searcher` and `grep-regex` crates—the exact same underlying hardware-accelerated libraries developed to power `ripgrep`.
