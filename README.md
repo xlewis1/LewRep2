@@ -40,6 +40,9 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * `--vscode` - searches text via `.vscode`.
 * `-j` - reads JSON output.
 * `--manpage` - Shows the official Lewrep2 manpage document.
+* `-R` - searches only Rust files and ignores any other programming language file or any other files.
+* `-C` - searches only C files like `.c` or `.h` files and ignores any other programming language file or any other files.
+* `-CPP` - searches only C++ files like `.cpp`, `.hpp`, `.cc`, or `.cxx` files and like `-C` and `-R` it ignores every other file.
 
 ## 🐛 Bug Reports
 
