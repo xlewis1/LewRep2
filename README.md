@@ -37,7 +37,8 @@ Measured using high-precision execution telemetry (`lewtime`) on an Apple Silico
 * `-X` - explains the search (uses its own regex engine) (exclusive to lewrep2).
 * `-h` - removes the filename of your search.
 * `--Hide` - hides `.gitignore`, `binary`, and hidden files (opposite flag to `-u`).
-* `--vscode` - searches text via `.vscode`. 
+* `--vscode` - searches text via `.vscode`.
+* `-j` - reads JSON output.
 
 ## 🐛 Bug Reports
 
