@@ -23,6 +23,7 @@ struct Config {
     tree_view: bool,
     delete_colour: bool,
     hide_all: bool,
+    vscode_include: bool,
 }
 
 fn main() {
@@ -59,11 +60,17 @@ fn main() {
     let mut tree_view = false;
     let mut delete_colour = false;
     let mut hide_all = false;
+    let mut vscode_include = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
         if arg == "--Hide" {
             hide_all = true;
+            continue;
+        }
+
+        if arg == "--vscode" {
+            vscode_include = true;
             continue;
         }
 
@@ -127,6 +134,7 @@ fn main() {
         tree_view,
         delete_colour,
         hide_all,
+        vscode_include,
     };
 
     let mut target_files = Vec::new();
@@ -149,7 +157,20 @@ fn main() {
             } else {
                walker_builder.git_ignore(true);
             }
+        }
 
+        if config.vscode_include && !config.hide_all {
+            walker_builder.filter_entry(|entry| {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name == ".vscode" {
+                        return true; 
+                    }
+                }
+                if entry.depth() > 0 && entry.path().components().any(|c| c.as_os_str() == ".vscode") {
+                    return true;
+                }
+                !entry.file_name().to_str().map_or(false, |s| s.starts_with('.'))
+            });
         }
 
         let walker = walker_builder.build();
