@@ -27,8 +27,90 @@ struct Config {
     json_mode: bool,
 }
 
+const MANPAGE: &str = r#"
+LEWREP2(1)                User Commands               LEWREP2(1)
+
+NAME
+       lewrep2 - A high-performance parallel grep-class utility.
+
+SYNOPSIS
+       lewrep2 [FLAGS] [PATTERN] [PATH...]
+
+DESCRIPTION
+       lewrep2 searches for PATTERN in each PATH. It automatically
+       respects .gitignore rules, avoids hidden directories, and
+       utilizes multi-threaded directory traversal.
+
+FLAGS
+       -j, --json
+              Enable JSON streaming mode. Outputs matches as clean,
+              un-styled JSON objects for tool interoperability.
+
+       -i, --ignore-case
+              Perform case-insensitive matching.
+
+       -n, --line-number
+              Prefix each line of output with its 1-based line number.
+
+       -v, --invert-match
+              Invert matching: select non-matching lines.
+
+       -l, --files-with-matches
+              Only print the name of each file that contains matches.
+        
+       -u --Unrestricted mode 
+              include hidden files.
+
+       -uu --include hidden
+              includes hidden directories.
+        
+        -uuu --show everything
+              include binary files and all normally excluded content.
+
+       -c, --count
+              Only print a count of matching lines per file.
+
+       -w, --word-regexp
+              Match only whole words matching PATTERN.
+
+       -T, --tree
+              Display results in a structured hierarchical visual tree.
+
+       -d, --delete-colour
+              Strip all color output styling.
+
+       -X, --explain
+              Explain regular expression match captures interactively.
+
+       -A <NUM>
+              Print NUM lines of trailing context after matching lines.
+
+       --Hide
+              Hide structural paths matching binary format signatures.
+
+       --vscode
+              Explicitly allow indexing of hidden .vscode directories.
+
+       --manpage
+              Display this manual page and exit.
+
+AUTHOR
+       Written by xlewis1.
+"#;
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    if args.iter().any(|arg| arg == "--manpage") {
+        let stdout = io::stdout();
+        let mut handle = stdout.lock();
+
+        let colored_manpage = Coloured::new(MANPAGE.trim(), Colour::Cyan);
+        let _ = colored_manpage.write_to(&mut handle);
+
+        let _ = writeln!(handle);
+        std::process::exit(0);
+    }
 
     if !stdin().is_terminal() {
         if args.len() < 2 {
@@ -538,3 +620,4 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
 
     Ok(())
 }
+
