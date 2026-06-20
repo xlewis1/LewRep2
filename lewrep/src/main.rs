@@ -25,6 +25,9 @@ struct Config {
     hide_all: bool,
     vscode_include: bool,
     json_mode: bool,
+    rust_only: bool,
+    c_only: bool,
+    cpp_only: bool,
 }
 
 const MANPAGE: &str = r#"
@@ -84,6 +87,15 @@ FLAGS
 
        -A <NUM>
               Print NUM lines of trailing context after matching lines.
+
+       -R --Rust only
+              Exclusively searches Rust files only.
+
+       -CPP -- C++ only
+              Exclusively searches C++ files only.
+        
+       -C --C only
+              Exclusively searches C files only.
 
        --Hide
               Hide structural paths matching binary format signatures.
@@ -145,6 +157,9 @@ fn main() {
     let mut hide_all = false;
     let mut vscode_include = false;
     let mut json_mode = false;
+    let mut rust_only = false;
+    let mut c_only = false;
+    let mut cpp_only = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
@@ -155,6 +170,11 @@ fn main() {
 
         if arg == "--vscode" {
             vscode_include = true;
+            continue;
+        }
+
+        if arg == "-CPP" {
+            cpp_only = true;
             continue;
         }
 
@@ -181,6 +201,8 @@ fn main() {
                     'T' => tree_view = true,
                     'd' => delete_colour = true,
                     'j' => json_mode = true,
+                    'R' => rust_only = true,
+                    'C' => c_only = true,
                     _ => {
                        eprintln!("Error: Unknown flag '-{}'", c);
                        std::process::exit(1); 
@@ -221,6 +243,9 @@ fn main() {
         hide_all,
         vscode_include,
         json_mode,
+        rust_only,
+        c_only,
+        cpp_only,
     };
 
     let mut target_files = Vec::new();
@@ -263,7 +288,30 @@ fn main() {
 
         for entry in walker.flatten() {
             if entry.file_type().map_or(false, |ft| ft.is_file()) {
-                // Skips processing known structural paths matching typical binary format signatures
+                if config.rust_only && entry.path().extension().map_or(true, |ext| ext != "rs") {
+                    continue;
+                }
+
+                if config.c_only {
+                    if let Some(ext) = entry.path().extension() {
+                        if ext != "c" && ext != "h" {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+
+                if config.cpp_only {
+                    if let Some(ext) = entry.path().extension() {
+                       if ext != "cpp" && ext != "hpp" && ext != "cc" && ext != "cxx" {
+                           continue;
+                        } 
+                    } else {
+                        continue;
+                    }
+                }
+
                 if config.hide_all {
                     if let Some(ext) = entry.path().extension() {
                         if ext == "bin" || ext == "exe" || ext == "o" || ext == "a" {
