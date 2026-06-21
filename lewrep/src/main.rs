@@ -30,6 +30,43 @@ struct Config {
     cpp_only: bool,
 }
 
+const HELP_TEXT: &str = r#"
+================================================================================
+                                 LEWREP2 HELP
+================================================================================
+Usage:
+    lewrep2 [FLAGS] [PATTERN] [PATH...]
+
+A parallel grep utility designed to quickly scan directories using regular expressions.
+
+FLAGS:
+    -h, --help              Display this quick-reference summary.
+    --manpage               Display the comprehensive manual document layout.
+    -i, --ignore-case       Perform case-insensitive text evaluation.
+    -n, --line-number       Prefix each match line with its 1-based sequential line index.
+    -v, --invert-match      Invert query matching selection properties.
+    -l, --files-with-matches Print only names of target files matching specifications.
+    -c, --count             Print exclusively total matching record line metrics per file.
+    -w, --word-regexp       Bound regular expression to validate complete word sequences.
+    -T, --tree              Format match visual layout structural mappings hierarchically.
+    -d, --delete-colour     Strip text styling components before output execution.
+    -j, --json              Stream structural data components formatted as raw JSON.
+    -X, --explain           Interactively clarify capture group structural properties.
+    -A <NUM>                Append context detailing trailing data lines.
+    -R                      Limit target evaluation queries exclusively to Rust files.
+    -C                      Limit target evaluation queries exclusively to C files.
+    -CPP                    Limit target evaluation queries exclusively to C++ files.
+    --Hide                  Omit structured path matching binary formatting properties.
+    --vscode                Override defaults to scan structural .vscode tracking areas.
+    -u, -uu and -uuu        Shows .gitignore, hidden files and binaries.
+    --Hide                  Does the opposite to "-u" and hides hidden files, binaries and .gitignore.
+
+Examples:
+    lewrep2 "struct Config" .
+    lewrep2 -in "TODO" src/
+================================================================================
+"#;
+
 const MANPAGE: &str = r#"
 LEWREP2(1)                User Commands               LEWREP2(1)
 
@@ -112,6 +149,17 @@ AUTHOR
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    if args.iter().any(|arg| arg == "--help") {
+        let stdout = io::stdout();
+        let mut handle = stdout.lock();
+
+        let colored_help = Coloured::new(HELP_TEXT.trim(), Colour::Green);
+        let _ = colored_help.write_to(&mut handle);
+
+        let _ = writeln!(handle);
+        std::process::exit(0);
+    }
 
     if args.iter().any(|arg| arg == "--manpage") {
         let stdout = io::stdout();
@@ -560,8 +608,45 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
     if config.hide_all {
         if let Ok(mut file) = File::open(path) {
             let mut buffer = [0; 1024];
-            // Passing &mut file directly avoids the Read/Write by_ref collision
+
             if let Ok(bytes_read) = file.take(1024).read(&mut buffer) {
+
+                #[cfg(target_os = "windows")]
+                {
+                    if bytes_read >= 2 {
+                        let has_utf16_bom = (buffer[0] == 0xFF && buffer[1] == 0xFE)  
+                                         || (buffer[0] == 0xFE && buffer[1] == 0xFF);
+                        
+                        if !has_utf16_bom {
+                            let mut looks_like_utf16_le = true;
+                            let mut null_count = 0;
+
+                            for i in (0..bytes_read.saturating_sub(1)).step_by(2) {
+                                let char_byte = buffer[i];
+                                let null_byte = buffer[i + 1];
+
+                                if null_byte == 0 && (char_byte.is_ascii_alphanumeric() || char_byte.is_ascii_whitespace() || char_byte == 0) {
+                                    if null_byte == 0 { null_count += 1; }
+                                } else {
+                                    looks_like_utf16_le = false;
+                                    break;
+                                }
+                            }
+
+                            if !looks_like_utf16_le && buffer[..bytes_read].iter().any(|&b| b == 0) {
+                                return Ok(());
+                            }
+
+                            if !looks_like_utf16_le && buffer[..bytes_read].iter().any(|&b| b == 0) {
+                                return Ok(());
+                            }
+                        }
+                    } else if buffer[..bytes_read].iter().any(|&b| b == 0) {
+                        return Ok(());
+                    }
+                }
+
+                #[cfg(not(target_os = "windows"))]
                 if buffer[..bytes_read].iter().any(|&b| b == 0) {
                     return Ok(());
                 }
@@ -648,15 +733,6 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
 
     if config.count_only && sink.match_count > 0 {
         let mut out = io::stdout().lock();
-        if !config.no_filename {
-            Coloured::new(&sink.file_name, Colour::Purple).write_to(&mut out)?;
-            write!(out, ":")?;
-        }
-        let _ = writeln!(out, "{}", sink.match_count);
-    }
-
-    if config.count_only && sink.match_count > 0 {
-        let mut out = io::stdout().lock();
         let count_file_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
 
         if !config.no_filename {
@@ -668,4 +744,3 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
 
     Ok(())
 }
-
