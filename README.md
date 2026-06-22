@@ -59,6 +59,7 @@ Slap those three backticks right under the `sys 0m0.001s` line, and it will inst
 * `-R` - searches only Rust files and ignores any other programming language file or any other files.
 * `-C` - searches only C files like `.c` or `.h` files and ignores any other programming language file or any other files.
 * `-CPP` - searches only C++ files like `.cpp`, `.hpp`, `.cc`, or `.cxx` files and like `-C` and `-R` it ignores every other file.
+* `--cat` - reads files using a custom made cat text searcher.
 
 ## 🐛 Bug Reports
 
