@@ -6,6 +6,7 @@ use rayon::prelude::*;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, BufReader, IsTerminal, Write, Read};
 use std::path::{Path, PathBuf};
+use timo::TimoDateTime;
 
 struct Config {
     pattern: String,
@@ -29,6 +30,7 @@ struct Config {
     c_only: bool,
     cpp_only: bool,
     cat_mode: bool,
+    show_time: bool,
 }
 
 const HELP_TEXT: &str = r#"
@@ -61,6 +63,8 @@ FLAGS:
     --vscode                Override defaults to scan structural .vscode tracking areas.
     -u, -uu and -uuu        Shows .gitignore, hidden files and binaries.
     --Hide                  Does the opposite to "-u" and hides hidden files, binaries and .gitignore.
+    --cat                   prints cat-style text prints.
+    --time                  shows the time via my Timo date/time library crate.
 
 Examples:
     lewrep2 "struct Config" .
@@ -173,6 +177,18 @@ fn main() {
         std::process::exit(0);
     }
 
+    if args.len() < 3 && args.iter().any(|arg| arg == "--time" || arg == "-t") {
+        let mut out = io::stdout().lock();
+        if let Ok(timo_now) = TimoDateTime::now("Europe/London") {
+            let _ = write!(out, "[");
+            lewcolour::Coloured::with_style("TIMO RUNTIME", lewcolour::Colour::Cyan, lewcolour::Style::bold()).write_to(&mut out).ok();
+            let _ = write!(out, "] ");
+            lewcolour::Coloured::new(&timo_now.status_summary(), lewcolour::Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
+            let _ = writeln!(out, "\n──────────────────────────────────────────────────────────");
+        }
+        std::process::exit(1);
+    }
+
     if !stdin().is_terminal() {
         if args.len() < 2 {
           eprintln!("Error: Pattern required for standard input piping.");
@@ -210,11 +226,17 @@ fn main() {
     let mut c_only = false;
     let mut cpp_only = false;
     let mut cat_mode = false;
+    let mut show_time = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
         if arg == "--cat" {
             cat_mode = true;
+            continue;
+        }
+
+        if arg == "--time" {
+            show_time = true;
             continue;
         }
 
@@ -258,6 +280,7 @@ fn main() {
                     'j' => json_mode = true,
                     'R' => rust_only = true,
                     'C' => c_only = true,
+                    't' => show_time = true,
                     _ => {
                        eprintln!("Error: Unknown flag '-{}'", c);
                        std::process::exit(1); 
@@ -302,6 +325,7 @@ fn main() {
         c_only,
         cpp_only,
         cat_mode,
+        show_time,
     };
 
     let mut target_files = Vec::new();
@@ -689,6 +713,25 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         }
         return Ok(());
     }
+
+
+    if config.show_time {
+        let mut out = io::stdout().lock();
+        if let Ok(timo_now) = TimoDateTime::now("Europe/London") {
+            if !config.delete_colour {
+                let _ = write!(out, "[");
+                Coloured::with_style("TIMO RUNTIME", Colour::Cyan, Style::bold()).write_to(&mut out).ok();
+                let _ = write!(out, "] ");
+                Coloured::new(&timo_now.status_summary(), Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
+                let _ = writeln!(out, "\n──────────────────────────────────────────────────────────");
+            } else {
+                let _ = writeln!(out, "[TIMO RUNTIME] {}", timo_now.status_summary());
+                let _ = writeln!(out, "──────────────────────────────────────────────────────────");
+            }
+        }
+    }
+
+
 
     let file = File::open(path)?;
 
