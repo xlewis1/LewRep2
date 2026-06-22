@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 lewcolour = { path = "../lewcolour" }
+timo = { path = "../timo" }
 memmap2 = "0.9"
 ignore = "0.4"
 memchr = "2.7"
