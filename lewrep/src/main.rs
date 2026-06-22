@@ -28,6 +28,7 @@ struct Config {
     rust_only: bool,
     c_only: bool,
     cpp_only: bool,
+    cat_mode: bool,
 }
 
 const HELP_TEXT: &str = r#"
@@ -208,9 +209,15 @@ fn main() {
     let mut rust_only = false;
     let mut c_only = false;
     let mut cpp_only = false;
+    let mut cat_mode = false;
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
+        if arg == "--cat" {
+            cat_mode = true;
+            continue;
+        }
+
         if arg == "--Hide" {
             hide_all = true;
             continue;
@@ -226,7 +233,7 @@ fn main() {
             continue;
         }
 
-        if arg.starts_with('-') && arg.len() > 1 {
+        if arg.starts_with('-') && !arg.starts_with("--") && arg.len() > 1 {
             if arg == "-A" {
                 if let Some(num_str) = args_iter.next() {
                     context_after = num_str.parse::<usize>().unwrap_or(0);
@@ -294,6 +301,7 @@ fn main() {
         rust_only,
         c_only,
         cpp_only,
+        cat_mode,
     };
 
     let mut target_files = Vec::new();
@@ -652,6 +660,34 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
                 }
             }
         }
+    }
+
+    if config.cat_mode {
+        let file = File::open(path)?;
+        let mut out = io::stdout().lock();
+        let reader = BufReader::new(file);
+
+        if !config.no_filename {
+          Coloured::with_style("📂 Cat View: ", Colour::Cyan, Style::bold()).write_to(&mut out).ok();
+          Coloured::with_style(&path.to_string_lossy(), Colour::Purple, Style::bold()).write_to(&mut out).ok();
+          let _ = writeln!(out, "\n──────────────────────────────────────────────────────────");  
+        }
+
+        for (idx, line_result) in reader.lines().enumerate() {
+            let line = line_result?;
+
+            if config.line_numbers {
+               Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold()).write_to(&mut out).ok();
+               let _ = write!(out, ": ");
+            }
+
+            if config.delete_colour {
+                let _ = writeln!(out, "{}", line);
+            } else {
+                let _ = writeln!(out, "{}", line);
+            }
+        }
+        return Ok(());
     }
 
     let file = File::open(path)?;
