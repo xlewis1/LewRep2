@@ -1,4 +1,4 @@
-use chrono::{DateTime, TimeZone, Utc, Datelike, Timelike, Offset};
+use chrono::{DateTime, TimeZone, Utc, Datelike, Offset}; // Timelike was unused
 use chrono_tz::Tz;
 
 
@@ -12,7 +12,7 @@ impl TimoDateTime {
 
         match tz.with_ymd_and_hms(year, month, day, hour, minute, second) {
             chrono::LocalResult::Single(dt) => Ok(TimoDateTime { inner: dt }),
-            chrono::LocalResult::Ambiguous(dt1, dt2) => {
+            chrono::LocalResult::Ambiguous(dt1, _dt2) => {
                 Ok(TimoDateTime { inner: dt1 })
             }
             chrono::LocalResult::None => Err("Invalid local time (skipped due to seasonal DST jump).".to_string()),

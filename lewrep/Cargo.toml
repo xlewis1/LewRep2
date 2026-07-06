@@ -13,3 +13,9 @@ rayon = "1.10"
 grep-searcher = "0.1.14"
 grep-regex = "0.1.14"
 regex = "1.12.4"
+
+[profile.release]
+lto = true              # for faster binary, but it makes compiling slower
+codegen-units = 1       # same
+panic = "abort"         # no panics (it is fine for lewrep) and smaller binary
+strip = true            # small bin
