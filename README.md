@@ -26,9 +26,6 @@ real    0m0.004s
 user    0m0.003s
 sys     0m0.001s
 
-Slap those three backticks right under the `sys 0m0.001s` line, and it will instantly fix the layout!
-
-
 ## Why is it so fast?
 
 * **Production-Grade Engine Room:** Built directly on top of the `grep-searcher` and `grep-regex` crates—the exact same underlying hardware-accelerated libraries developed to power `ripgrep`.
