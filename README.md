@@ -4,7 +4,7 @@
 
 Engineered to seamlessly handle complex pipelines, it fully supports standard UNIX piping constraints, allowing you to fluidly pass data into and out of core system utilities like `grep`, `ripgrep`, `tree`, `cat`, `ls`, and more.
 
-## 📊 Performance Showdown (.txt Scan Rematch)
+## 📊 Performance Showdown 
 
 Measured using high-precision execution telemetry (`lewtime`) on an Apple Silicon architecture:
 
@@ -80,7 +80,7 @@ this program uses grep_regex, grep-searcher, walkbuilder, ignore which all belon
 
 ## 🛠️ Installation & Building
 
-Since `lewrep2` is 100% cross-platform at the source level, you can compile it natively for macOS, Linux, or Windows.
+Since `lewrep2` is 100% cross-platform at the source level, you can compile it natively for macOS, Linux, Windows, NixOS.
 
 ```bash
 # Clone the repository
