@@ -43,21 +43,14 @@ Usage:
 A parallel grep utility designed to quickly scan directories using regular expressions.
 
 FLAGS:
-<<<<<<< HEAD
-    -h, --help              Display this quick-reference summary.
-=======
-    --help              Display this quick-reference summary.
->>>>>>> b0a7a97 (docs: correct positioning and formatting of -h flag in help layout and manpage)
+    --help                  Display the help manual document layout.
     --manpage               Display the comprehensive manual document layout.
     -i, --ignore-case       Perform case-insensitive text evaluation.
     -n, --line-number       Prefix each match line with its 1-based sequential line index.
     -v, --invert-match      Invert query matching selection properties.
     -l, --files-with-matches Print only names of target files matching specifications.
     -c, --count             Print exclusively total matching record line metrics per file.
-<<<<<<< HEAD
-=======
     -h                      doesn't print filenames, just the files text.
->>>>>>> b0a7a97 (docs: correct positioning and formatting of -h flag in help layout and manpage)
     -w, --word-regexp       Bound regular expression to validate complete word sequences.
     -T, --tree              Format match visual layout structural mappings hierarchically.
     -d, --delete-colour     Strip text styling components before output execution.
@@ -123,12 +116,8 @@ FLAGS
        -c, --count
               Only print a count of matching lines per file.
 
-<<<<<<< HEAD
-=======
         -h --no filename
               removes filename and just returns the files text.
-              
->>>>>>> b0a7a97 (docs: correct positioning and formatting of -h flag in help layout and manpage)
        -w, --word-regexp
               Match only whole words matching PATTERN.
 
