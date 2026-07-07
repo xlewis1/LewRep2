@@ -26,6 +26,9 @@ real    0m0.004s
 user    0m0.003s
 sys     0m0.001s
 
+### NIXOS Performance
+lewrep2 "." src/main.rs  0.01s user 0.01s system 67% cpu 0.027 total
+
 ## Why is it so fast?
 
 * **Production-Grade Engine Room:** Built directly on top of the `grep-searcher` and `grep-regex` crates—the exact same underlying hardware-accelerated libraries developed to power `ripgrep`.
