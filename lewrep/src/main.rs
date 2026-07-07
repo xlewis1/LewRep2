@@ -26,45 +26,42 @@ struct Config {
     hide_all: bool,
     vscode_include: bool,
     json_mode: bool,
-    rust_only: bool,
-    c_only: bool,
-    cpp_only: bool,
+    extensions: Vec<String>,
     cat_mode: bool,
     show_time: bool,
 }
 
 const HELP_TEXT: &str = r#"
 ================================================================================
-                                 LEWREP2 HELP
+LEWREP2 HELP
 ================================================================================
 Usage:
-    lewrep2 [FLAGS] [PATTERN] [PATH...]
+lewrep2 [FLAGS] [PATTERN] [PATH...]
 
 A parallel grep utility designed to quickly scan directories using regular expressions.
 
 FLAGS:
-    -h, --help              Display this quick-reference summary.
-    --manpage               Display the comprehensive manual document layout.
-    -i, --ignore-case       Perform case-insensitive text evaluation.
-    -n, --line-number       Prefix each match line with its 1-based sequential line index.
-    -v, --invert-match      Invert query matching selection properties.
-    -l, --files-with-matches Print only names of target files matching specifications.
-    -c, --count             Print exclusively total matching record line metrics per file.
-    -w, --word-regexp       Bound regular expression to validate complete word sequences.
-    -T, --tree              Format match visual layout structural mappings hierarchically.
-    -d, --delete-colour     Strip text styling components before output execution.
-    -j, --json              Stream structural data components formatted as raw JSON.
-    -X, --explain           Interactively clarify capture group structural properties.
-    -A <NUM>                Append context detailing trailing data lines.
-    -R                      Limit target evaluation queries exclusively to Rust files.
-    -C                      Limit target evaluation queries exclusively to C files.
-    -CPP                    Limit target evaluation queries exclusively to C++ files.
-    --Hide                  Omit structured path matching binary formatting properties.
-    --vscode                Override defaults to scan structural .vscode tracking areas.
-    -u, -uu and -uuu        Shows .gitignore, hidden files and binaries.
-    --Hide                  Does the opposite to "-u" and hides hidden files, binaries and .gitignore.
-    --cat                   prints cat-style text prints.
-    --time                  shows the time via my Timo date/time library crate.
+    --help                    Display this quick-reference summary.
+    --manpage                 Display the comprehensive manual document layout.
+    -i, --ignore-case         Perform case-insensitive text evaluation.
+    -n, --line-number         Prefix each match line with its 1-based sequential line index.
+    -v, --invert-match        Invert query matching selection properties.
+    -l, --files-with-matches  Print only names of target files matching specifications.
+    -c, --count               Print exclusively total matching record line metrics per file.
+    -w, --word-regexp         Bound regular expression to validate complete word sequences.
+    -T, --tree                Format match visual layout structural mappings hierarchically.
+    -d, --delete-colour       Strip text styling components before output execution.
+    -j, --json                Stream structural data components formatted as raw JSON.
+    -X, --explain             Interactively clarify capture group structural properties.
+    -A <NUM>                  Append context detailing trailing data lines.
+    -x <EXT|EXT|...>          Limit target evaluation queries to a pipe-separated list of
+                              file extensions ( -x "rs", -x "c|h", -x "cpp|hpp|cc|cxx").
+    --Hide                    Omit structured path matching binary formatting properties.
+    --vscode                  Override defaults to scan structural .vscode tracking areas.
+    -u, -uu and -uuu          Shows .gitignore, hidden files and binaries.
+    --Hide                    Does the opposite to "-u" and hides hidden files, binaries and .gitignore.
+    --cat                     prints cat-style text prints.
+    --time                    shows the time via my Timo date/time library crate.
 
 Examples:
     lewrep2 "struct Config" .
@@ -88,65 +85,60 @@ DESCRIPTION
 
 FLAGS
        -j, --json
-              Enable JSON streaming mode. Outputs matches as clean,
-              un-styled JSON objects for tool interoperability.
+             Enable JSON streaming mode. Outputs matches as clean,
+             un-styled JSON objects for tool interoperability.
 
        -i, --ignore-case
-              Perform case-insensitive matching.
+             Perform case-insensitive matching.
 
        -n, --line-number
-              Prefix each line of output with its 1-based line number.
+             Prefix each line of output with its 1-based line number.
 
        -v, --invert-match
               Invert matching: select non-matching lines.
 
        -l, --files-with-matches
-              Only print the name of each file that contains matches.
-        
-       -u --Unrestricted mode 
-              include hidden files.
+             Only print the name of each file that contains matches.
+
+       -u --Unrestricted mode
+             include hidden files.
 
        -uu --include hidden
-              includes hidden directories.
-        
-        -uuu --show everything
-              include binary files and all normally excluded content.
+             includes hidden directories.
+
+       -uuu --show everything
+             include binary files and all normally excluded content.
 
        -c, --count
-              Only print a count of matching lines per file.
+             Only print a count of matching lines per file.
 
        -w, --word-regexp
-              Match only whole words matching PATTERN.
+             Match only whole words matching PATTERN.
 
        -T, --tree
-              Display results in a structured hierarchical visual tree.
+             Display results in a structured hierarchical visual tree.
 
        -d, --delete-colour
-              Strip all color output styling.
+             Strip all color output styling.
 
        -X, --explain
-              Explain regular expression match captures interactively.
+             Explain regular expression match captures interactively.
 
        -A <NUM>
-              Print NUM lines of trailing context after matching lines.
+             Print NUM lines of trailing context after matching lines.
 
-       -R --Rust only
-              Exclusively searches Rust files only.
-
-       -CPP -- C++ only
-              Exclusively searches C++ files only.
-        
-       -C --C only
-              Exclusively searches C files only.
+       -x <EXT|EXT|...>
+             Limit search to files matching a pipe-separated list of
+             extensions. Examples: -x "rs", -x "c|h", -x "cpp|hpp|cc|cxx".
 
        --Hide
-              Hide structural paths matching binary format signatures.
+             Hide structural paths matching binary format signatures.
 
        --vscode
-              Explicitly allow indexing of hidden .vscode directories.
+             Explicitly allow indexing of hidden .vscode directories.
 
        --manpage
-              Display this manual page and exit.
+             Display this manual page and exit.
 
 AUTHOR
        Written by xlewis1.
@@ -191,8 +183,8 @@ fn main() {
 
     if !stdin().is_terminal() {
         if args.len() < 2 {
-          eprintln!("Error: Pattern required for standard input piping.");
-          std::process::exit(1); 
+            eprintln!("Error: Pattern required for standard input piping.");
+            std::process::exit(1);
         }
         let pattern = args[1].clone();
         process_stdin(&pattern);
@@ -200,8 +192,8 @@ fn main() {
     }
 
     if args.len() < 2 {
-       eprintln!("Usage: lewrep2 [FLAGS] <PATTERN> [PATHS...]");
-       std::process::exit(1); 
+        eprintln!("Usage: lewrep2 [FLAGS] <PATTERN> [PATHS...]");
+        std::process::exit(1);
     }
 
     let mut pattern = String::new();
@@ -222,11 +214,9 @@ fn main() {
     let mut hide_all = false;
     let mut vscode_include = false;
     let mut json_mode = false;
-    let mut rust_only = false;
-    let mut c_only = false;
-    let mut cpp_only = false;
     let mut cat_mode = false;
     let mut show_time = false;
+    let mut extensions: Vec<String> = Vec::new();
 
     let mut args_iter = args.iter().skip(1);
     while let Some(arg) = args_iter.next() {
@@ -250,8 +240,18 @@ fn main() {
             continue;
         }
 
-        if arg == "-CPP" {
-            cpp_only = true;
+        // -x "c|rs"
+        if arg == "-x" {
+            if let Some(ext_str) = args_iter.next() {
+                extensions = ext_str
+                .split('|')
+                .map(|s| s.trim().trim_start_matches('.').to_lowercase())
+                .filter(|s| !s.is_empty())
+                .collect();
+            } else {
+                eprintln!("Error: -x requires a pipe-separated extension list (-x \"rs\" or -x \"c|cpp\")");
+                std::process::exit(1);
+            }
             continue;
         }
 
@@ -278,25 +278,23 @@ fn main() {
                     'T' => tree_view = true,
                     'd' => delete_colour = true,
                     'j' => json_mode = true,
-                    'R' => rust_only = true,
-                    'C' => c_only = true,
                     't' => show_time = true,
                     _ => {
-                       eprintln!("Error: Unknown flag '-{}'", c);
-                       std::process::exit(1); 
+                        eprintln!("Error: Unknown flag '-{}'", c);
+                        std::process::exit(1);
                     }
                 }
             }
         } else if pattern.is_empty() {
-           pattern = arg.clone(); 
+            pattern = arg.clone();
         } else {
-           paths.push(PathBuf::from(arg));  
+            paths.push(PathBuf::from(arg));
         }
     }
 
     if pattern.is_empty() {
-       eprintln!("Error: Missing search pattern target.");
-       std::process::exit(1); 
+        eprintln!("Error: Missing search pattern target.");
+        std::process::exit(1);
     }
 
     if paths.is_empty() {
@@ -321,32 +319,30 @@ fn main() {
         hide_all,
         vscode_include,
         json_mode,
-        rust_only,
-        c_only,
-        cpp_only,
+        extensions,
         cat_mode,
         show_time,
     };
 
     let mut target_files = Vec::new();
     for path in paths {
-       let mut walker_builder = WalkBuilder::new(path);
-       
-       if config.hide_all {
-          walker_builder.hidden(true);
-          walker_builder.git_ignore(true);
-          walker_builder.parents(true);
-       } else {
-           if config.unrestricted_level >= 1 {
-             walker_builder.hidden(false);
+        let mut walker_builder = WalkBuilder::new(path);
+
+        if config.hide_all {
+            walker_builder.hidden(true);
+            walker_builder.git_ignore(true);
+            walker_builder.parents(true);
+        } else {
+            if config.unrestricted_level >= 1 {
+                walker_builder.hidden(false);
             } else {
-              walker_builder.hidden(true);
+                walker_builder.hidden(true);
             }
 
             if config.unrestricted_level >= 2 || config.explicit_ignore {
-               walker_builder.git_ignore(false);
+                walker_builder.git_ignore(false);
             } else {
-               walker_builder.git_ignore(true);
+                walker_builder.git_ignore(true);
             }
         }
 
@@ -354,7 +350,7 @@ fn main() {
             walker_builder.filter_entry(|entry| {
                 if let Some(name) = entry.file_name().to_str() {
                     if name == ".vscode" {
-                        return true; 
+                        return true;
                     }
                 }
                 if entry.depth() > 0 && entry.path().components().any(|c| c.as_os_str() == ".vscode") {
@@ -368,26 +364,14 @@ fn main() {
 
         for entry in walker.flatten() {
             if entry.file_type().is_some_and(|ft| ft.is_file()) {
-                if config.rust_only && entry.path().extension().is_none_or(|ext| ext != "rs") {
-                    continue;
-                }
+                if !config.extensions.is_empty() {
+                    let matches_ext = entry
+                    .path()
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .is_some_and(|ext| config.extensions.iter().any(|e| e == &ext.to_lowercase()));
 
-                if config.c_only {
-                    if let Some(ext) = entry.path().extension() {
-                        if ext != "c" && ext != "h" {
-                            continue;
-                        }
-                    } else {
-                        continue;
-                    }
-                }
-
-                if config.cpp_only {
-                    if let Some(ext) = entry.path().extension() {
-                       if ext != "cpp" && ext != "hpp" && ext != "cc" && ext != "cxx" {
-                           continue;
-                        } 
-                    } else {
+                    if !matches_ext {
                         continue;
                     }
                 }
@@ -431,8 +415,8 @@ impl<F> CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
         let line_text = String::from_utf8_lossy(matched_bytes);
 
         let compiled_regex = match regex::RegexBuilder::new(&self.pattern)
-            .case_insensitive(self.ignore_case)
-            .build()
+        .case_insensitive(self.ignore_case)
+        .build()
 
         {
             Ok(re) => re,
@@ -456,17 +440,17 @@ impl<F> CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
             for i in 1..captures.len() {
                 if let Some(group_match) = captures.get(i) {
                     let group_name = compiled_regex.capture_names()
-                        .nth(i)
-                        .flatten()
-                        .map(|name| format!(" ({})", name))
-                        .unwrap_or_default();
+                    .nth(i)
+                    .flatten()
+                    .map(|name| format!(" ({})", name))
+                    .unwrap_or_default();
 
                     if write!(out, "    => Group ").is_ok() {
-                       Coloured::new(&i.to_string(), Colour::Green).write_to(&mut out).ok();
-                       Coloured::new(&group_name, Colour::Blue).write_to(&mut out).ok();
-                       let _ = write!(out, ": '");
-                       Coloured::new(group_match.as_str(), Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
-                       let _ = writeln!(out, "' (at bytes {}-{})", group_match.start(), group_match.end()); 
+                        Coloured::new(&i.to_string(), Colour::Green).write_to(&mut out).ok();
+                        Coloured::new(&group_name, Colour::Blue).write_to(&mut out).ok();
+                        let _ = write!(out, ": '");
+                        Coloured::new(group_match.as_str(), Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
+                        let _ = writeln!(out, "' (at bytes {}-{})", group_match.start(), group_match.end());
                     }
                 }
             }
@@ -502,8 +486,8 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
                 out,
                 r#"{{"type":"match","path":"{}","line_number":{},"text":"{}"}}"#,
                 self.file_name.replace('\\', "\\\\").replace('"', "\\\""),
-                line_num,
-                escaped_line
+                     line_num,
+                     escaped_line
             )?;
 
             if self.explain_mode {
@@ -528,14 +512,14 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
         let colored_line = if self.delete_colour {
             Coloured::new(&clean_line, Colour::Rgb(255, 255, 255))
         } else {
-            (self.orange_formatter)(&clean_line) 
+            (self.orange_formatter)(&clean_line)
         };
 
         if self.show_line_numbers {
             if let Some(line_num) = mat.line_number() {
                 if !self.no_filename {
-                   Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-                   write!(out, ":")?; 
+                    Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                    write!(out, ":")?;
                 }
                 Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
                 write!(out, ": ")?;
@@ -543,14 +527,14 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
                 writeln!(out)?;
             }
         } else {
-           if !self.no_filename {
-              Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-              write!(out, ": ")?;
+            if !self.no_filename {
+                Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                write!(out, ": ")?;
             }
             colored_line.write_to(&mut out)?;
             writeln!(out)?;
         }
-        
+
         if self.explain_mode {
             self.execute_explanation(mat.bytes());
         }
@@ -562,24 +546,24 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
         if self.count_only {
             return Ok(true);
         }
-        
+
         let clean_line = String::from_utf8_lossy(mat.bytes())
-            .lines()
-            .next()
-            .unwrap_or("")
-            .to_string();
+        .lines()
+        .next()
+        .unwrap_or("")
+        .to_string();
 
         if self.json_mode {
             let mut out = io::stdout().lock();
             let line_num = mat.line_number().unwrap_or(0);
             let escaped_line = clean_line.replace('\\', "\\\\").replace('"', "\\\"");
-            
+
             writeln!(
                 out,
                 r#"{{"type":"context","path":"{}","line_number":{},"text":"{}"}}"#,
                 self.file_name.replace('\\', "\\\\").replace('"', "\\\""),
-                line_num,
-                escaped_line
+                     line_num,
+                     escaped_line
             )?;
             return Ok(true);
         }
@@ -598,8 +582,8 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
         if self.show_line_numbers {
             if let Some(line_num) = mat.line_number() {
                 if !self.no_filename {
-                   Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-                   write!(out, "-")?; 
+                    Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                    write!(out, "-")?;
                 }
                 Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
                 write!(out, "- ")?;
@@ -608,8 +592,8 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
             }
         } else {
             if !self.no_filename {
-               Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-               write!(out, "- ")?; 
+                Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                write!(out, "- ")?;
             }
             colored_line.write_to(&mut out)?;
             writeln!(out)?;
@@ -625,10 +609,10 @@ fn process_stdin(pattern: &str) {
     for (idx, line_result) in reader.lines().enumerate() {
         if let Ok(line) = line_result {
             if line.contains(pattern) {
-               Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold()).write_to(&mut out).ok();
-               if write!(out, ": ").is_ok() {
-                   Coloured::new(&line, Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
-                   let _ = writeln!(out);
+                Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold()).write_to(&mut out).ok();
+                if write!(out, ": ").is_ok() {
+                    Coloured::new(&line, Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
+                    let _ = writeln!(out);
                 }
             }
         }
@@ -646,9 +630,9 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
                 #[cfg(target_os = "windows")]
                 {
                     if bytes_read >= 2 {
-                        let has_utf16_bom = (buffer[0] == 0xFF && buffer[1] == 0xFE)  
-                                         || (buffer[0] == 0xFE && buffer[1] == 0xFF);
-                        
+                        let has_utf16_bom = (buffer[0] == 0xFF && buffer[1] == 0xFE)
+                        || (buffer[0] == 0xFE && buffer[1] == 0xFF);
+
                         if !has_utf16_bom {
                             let mut looks_like_utf16_le = true;
                             let mut null_count = 0;
@@ -679,7 +663,6 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
                 }
 
                 #[cfg(not(target_os = "windows"))]
-                // contains(&0) instead iter().any(|&b| b == 0)
                 if buffer[..bytes_read].contains(&0) {
                     return Ok(());
                 }
@@ -693,21 +676,19 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         let reader = BufReader::new(file);
 
         if !config.no_filename {
-          Coloured::with_style("📂 Cat View: ", Colour::Cyan, Style::bold()).write_to(&mut out).ok();
-          Coloured::with_style(&path.to_string_lossy(), Colour::Purple, Style::bold()).write_to(&mut out).ok();
-          let _ = writeln!(out, "\n──────────────────────────────────────────────────────────");  
+            Coloured::with_style("📂 Cat View: ", Colour::Cyan, Style::bold()).write_to(&mut out).ok();
+            Coloured::with_style(&path.to_string_lossy(), Colour::Purple, Style::bold()).write_to(&mut out).ok();
+            let _ = writeln!(out, "\n──────────────────────────────────────────────────────────");
         }
 
         for (idx, line_result) in reader.lines().enumerate() {
             let line = line_result?;
 
             if config.line_numbers {
-               Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold()).write_to(&mut out).ok();
-               let _ = write!(out, ": ");
+                Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold()).write_to(&mut out).ok();
+                let _ = write!(out, ": ");
             }
 
-            // I removed: else { let _ = writeln!(out, "{}", line); }
-            // because it is an identical block
             if config.delete_colour {
                 let _ = writeln!(out, "{}", line);
             }
@@ -732,8 +713,6 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         }
     }
 
-
-
     let file = File::open(path)?;
 
     let final_pattern = if config.word_regexp {
@@ -744,7 +723,7 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
 
     let mut matcher_builder = RegexMatcherBuilder::new();
     matcher_builder.case_insensitive(config.ignore_case);
-  
+
 
     let matcher = match matcher_builder.build(&final_pattern) {
         Ok(m) => m,
@@ -752,9 +731,9 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
     };
 
     let mut searcher = SearcherBuilder::new()
-        .after_context(config.context_after)
-        .invert_match(config.invert_match)
-        .build();
+    .after_context(config.context_after)
+    .invert_match(config.invert_match)
+    .build();
 
     let orange_formatter: for<'a> fn(&'a str) -> Coloured<'a> = |line| {
         Coloured::new(line, Colour::Orange)
@@ -781,7 +760,7 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
 
     if config.tree_view && !sink.buffered_matches.is_empty() {
         let mut out = io::stdout().lock();
-        
+
         let file_tree_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
         let _line_tree_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Magenta };
         let _leaf_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Orange };
@@ -791,13 +770,13 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         }
         Coloured::with_style(&sink.file_name, file_tree_color, Style::bold()).write_to(&mut out)?;
         let _ = writeln!(out);
-     
+
         for (i, (line_num, line_text)) in sink.buffered_matches.iter().enumerate() {
             let is_last = i == sink.buffered_matches.len() - 1;
             let branch = if is_last { "└── " } else { "├── " };
-            
+
             let _ = write!(out, "{}", branch);
-            
+
             if config.line_numbers && *line_num > 0 {
                 let _ = write!(out, "[");
                 Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
