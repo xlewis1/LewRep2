@@ -1,10 +1,10 @@
-use lewcolour::{Colour, Style, Coloured};
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{SearcherBuilder, Sink, SinkMatch};
 use ignore::WalkBuilder;
+use lewcolour::{Colour, Coloured, Style};
 use rayon::prelude::*;
 use std::fs::File;
-use std::io::{self, stdin, BufRead, BufReader, IsTerminal, Write, Read};
+use std::io::{self, stdin, BufRead, BufReader, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
 use timo::TimoDateTime;
 
@@ -41,27 +41,28 @@ lewrep2 [FLAGS] [PATTERN] [PATH...]
 A parallel grep utility designed to quickly scan directories using regular expressions.
 
 FLAGS:
-    --help                    Display this quick-reference summary.
-    --manpage                 Display the comprehensive manual document layout.
-    -i, --ignore-case         Perform case-insensitive text evaluation.
-    -n, --line-number         Prefix each match line with its 1-based sequential line index.
-    -v, --invert-match        Invert query matching selection properties.
-    -l, --files-with-matches  Print only names of target files matching specifications.
-    -c, --count               Print exclusively total matching record line metrics per file.
-    -w, --word-regexp         Bound regular expression to validate complete word sequences.
-    -T, --tree                Format match visual layout structural mappings hierarchically.
-    -d, --delete-colour       Strip text styling components before output execution.
-    -j, --json                Stream structural data components formatted as raw JSON.
-    -X, --explain             Interactively clarify capture group structural properties.
-    -A <NUM>                  Append context detailing trailing data lines.
-    -x <EXT|EXT|...>          Limit target evaluation queries to a pipe-separated list of
-                              file extensions ( -x "rs", -x "c|h", -x "cpp|hpp|cc|cxx").
-    --Hide                    Omit structured path matching binary formatting properties.
-    --vscode                  Override defaults to scan structural .vscode tracking areas.
-    -u, -uu and -uuu          Shows .gitignore, hidden files and binaries.
-    --Hide                    Does the opposite to "-u" and hides hidden files, binaries and .gitignore.
-    --cat                     prints cat-style text prints.
-    --time                    shows the time via my Timo date/time library crate.
+--help                  Display the help manual document layout.
+    --manpage               Display the comprehensive manual document layout.
+    -i, --ignore-case       Perform case-insensitive text evaluation.
+    -n, --line-number       Prefix each match line with its 1-based sequential line index.
+    -v, --invert-match      Invert query matching selection properties.
+    -l, --files-with-matches Print only names of target files matching specifications.
+    -c, --count             Print exclusively total matching record line metrics per file.
+    -h                      doesn't print filenames, just the files text.
+    -w, --word-regexp       Bound regular expression to validate complete word sequences.
+    -T, --tree              Format match visual layout structural mappings hierarchically.
+    -d, --delete-colour     Strip text styling components before output execution.
+    -j, --json              Stream structural data components formatted as raw JSON.
+    -X, --explain           Interactively clarify capture group structural properties.
+    -A <NUM>                Append context detailing trailing data lines.
+    -x <EXT|EXT|...>        Limit target evaluation queries to a pipe-separated list of
+                            file extensions ( -x "rs", -x "c|h", -x "cpp|hpp|cc|cxx").
+    --Hide                  Omit structured path matching binary formatting properties.
+    --vscode                Override defaults to scan structural .vscode tracking areas.
+    -u, -uu and -uuu        Shows .gitignore, hidden files and binaries.
+    --Hide                  Does the opposite to "-u" and hides hidden files, binaries and .gitignore.
+    --cat                   prints cat-style text prints.
+    --time                  shows the time via my Timo date/time library crate.
 
 Examples:
     lewrep2 "struct Config" .
@@ -112,6 +113,8 @@ FLAGS
        -c, --count
              Only print a count of matching lines per file.
 
+       -h --no filename
+              removes filename and just returns the files text.
        -w, --word-regexp
              Match only whole words matching PATTERN.
 
@@ -173,10 +176,24 @@ fn main() {
         let mut out = io::stdout().lock();
         if let Ok(timo_now) = TimoDateTime::now("Europe/London") {
             let _ = write!(out, "[");
-            lewcolour::Coloured::with_style("TIMO RUNTIME", lewcolour::Colour::Cyan, lewcolour::Style::bold()).write_to(&mut out).ok();
+            lewcolour::Coloured::with_style(
+                "TIMO RUNTIME",
+                lewcolour::Colour::Cyan,
+                lewcolour::Style::bold(),
+            )
+            .write_to(&mut out)
+            .ok();
             let _ = write!(out, "] ");
-            lewcolour::Coloured::new(&timo_now.status_summary(), lewcolour::Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
-            let _ = writeln!(out, "\n──────────────────────────────────────────────────────────");
+            lewcolour::Coloured::new(
+                &timo_now.status_summary(),
+                lewcolour::Colour::Rgb(255, 135, 0),
+            )
+            .write_to(&mut out)
+            .ok();
+            let _ = writeln!(
+                out,
+                "\n──────────────────────────────────────────────────────────"
+            );
         }
         std::process::exit(1);
     }
@@ -244,10 +261,10 @@ fn main() {
         if arg == "-x" {
             if let Some(ext_str) = args_iter.next() {
                 extensions = ext_str
-                .split('|')
-                .map(|s| s.trim().trim_start_matches('.').to_lowercase())
-                .filter(|s| !s.is_empty())
-                .collect();
+                    .split('|')
+                    .map(|s| s.trim().trim_start_matches('.').to_lowercase())
+                    .filter(|s| !s.is_empty())
+                    .collect();
             } else {
                 eprintln!("Error: -x requires a pipe-separated extension list (-x \"rs\" or -x \"c|cpp\")");
                 std::process::exit(1);
@@ -353,10 +370,18 @@ fn main() {
                         return true;
                     }
                 }
-                if entry.depth() > 0 && entry.path().components().any(|c| c.as_os_str() == ".vscode") {
+                if entry.depth() > 0
+                    && entry
+                        .path()
+                        .components()
+                        .any(|c| c.as_os_str() == ".vscode")
+                {
                     return true;
                 }
-                !entry.file_name().to_str().is_some_and(|s| s.starts_with('.'))
+                !entry
+                    .file_name()
+                    .to_str()
+                    .is_some_and(|s| s.starts_with('.'))
             });
         }
 
@@ -366,10 +391,12 @@ fn main() {
             if entry.file_type().is_some_and(|ft| ft.is_file()) {
                 if !config.extensions.is_empty() {
                     let matches_ext = entry
-                    .path()
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .is_some_and(|ext| config.extensions.iter().any(|e| e == &ext.to_lowercase()));
+                        .path()
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .is_some_and(|ext| {
+                            config.extensions.iter().any(|e| e == &ext.to_lowercase())
+                        });
 
                     if !matches_ext {
                         continue;
@@ -393,7 +420,10 @@ fn main() {
     });
 }
 
-struct CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
+struct CustomSink<F>
+where
+    F: for<'a> Fn(&'a str) -> Coloured<'a>,
+{
     file_name: String,
     filenames_only: bool,
     show_line_numbers: bool,
@@ -410,14 +440,16 @@ struct CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
     buffered_matches: Vec<(usize, String)>,
 }
 
-impl<F> CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
+impl<F> CustomSink<F>
+where
+    F: for<'a> Fn(&'a str) -> Coloured<'a>,
+{
     fn execute_explanation(&self, matched_bytes: &[u8]) {
         let line_text = String::from_utf8_lossy(matched_bytes);
 
         let compiled_regex = match regex::RegexBuilder::new(&self.pattern)
-        .case_insensitive(self.ignore_case)
-        .build()
-
+            .case_insensitive(self.ignore_case)
+            .build()
         {
             Ok(re) => re,
             Err(_) => return,
@@ -427,30 +459,46 @@ impl<F> CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
             let mut out = io::stdout().lock();
 
             if write!(out, "  ").is_ok() {
-                Coloured::with_style("[EXPLAIN]", Colour::Cyan, Style::bold()).write_to(&mut out).ok();
+                Coloured::with_style("[EXPLAIN]", Colour::Cyan, Style::bold())
+                    .write_to(&mut out)
+                    .ok();
                 let _ = writeln!(out);
             }
 
             if write!(out, "    Full Match: '").is_ok() {
                 let full_match = captures.get(0).map_or("", |m| m.as_str());
-                Coloured::new(full_match, Colour::Yellow).write_to(&mut out).ok();
+                Coloured::new(full_match, Colour::Yellow)
+                    .write_to(&mut out)
+                    .ok();
                 let _ = writeln!(out);
             }
 
             for i in 1..captures.len() {
                 if let Some(group_match) = captures.get(i) {
-                    let group_name = compiled_regex.capture_names()
-                    .nth(i)
-                    .flatten()
-                    .map(|name| format!(" ({})", name))
-                    .unwrap_or_default();
+                    let group_name = compiled_regex
+                        .capture_names()
+                        .nth(i)
+                        .flatten()
+                        .map(|name| format!(" ({})", name))
+                        .unwrap_or_default();
 
                     if write!(out, "    => Group ").is_ok() {
-                        Coloured::new(&i.to_string(), Colour::Green).write_to(&mut out).ok();
-                        Coloured::new(&group_name, Colour::Blue).write_to(&mut out).ok();
+                        Coloured::new(&i.to_string(), Colour::Green)
+                            .write_to(&mut out)
+                            .ok();
+                        Coloured::new(&group_name, Colour::Blue)
+                            .write_to(&mut out)
+                            .ok();
                         let _ = write!(out, ": '");
-                        Coloured::new(group_match.as_str(), Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
-                        let _ = writeln!(out, "' (at bytes {}-{})", group_match.start(), group_match.end());
+                        Coloured::new(group_match.as_str(), Colour::Rgb(255, 135, 0))
+                            .write_to(&mut out)
+                            .ok();
+                        let _ = writeln!(
+                            out,
+                            "' (at bytes {}-{})",
+                            group_match.start(),
+                            group_match.end()
+                        );
                     }
                 }
             }
@@ -458,10 +506,17 @@ impl<F> CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
     }
 }
 
-impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
+impl<F> Sink for CustomSink<F>
+where
+    F: for<'a> Fn(&'a str) -> Coloured<'a>,
+{
     type Error = io::Error;
 
-    fn matched(&mut self, _searcher: &grep_searcher::Searcher, mat: &SinkMatch<'_>) -> Result<bool, Self::Error> {
+    fn matched(
+        &mut self,
+        _searcher: &grep_searcher::Searcher,
+        mat: &SinkMatch<'_>,
+    ) -> Result<bool, Self::Error> {
         if self.count_only {
             self.match_count += 1;
             return Ok(true);
@@ -474,7 +529,9 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
 
         let mut out = io::stdout().lock();
 
-        let clean_line = String::from_utf8_lossy(mat.bytes()).trim_end_matches(['\r', '\n']).to_string();
+        let clean_line = String::from_utf8_lossy(mat.bytes())
+            .trim_end_matches(['\r', '\n'])
+            .to_string();
 
         if self.json_mode {
             let mut out = io::stdout().lock();
@@ -486,8 +543,8 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
                 out,
                 r#"{{"type":"match","path":"{}","line_number":{},"text":"{}"}}"#,
                 self.file_name.replace('\\', "\\\\").replace('"', "\\\""),
-                     line_num,
-                     escaped_line
+                line_num,
+                escaped_line
             )?;
 
             if self.explain_mode {
@@ -506,8 +563,16 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
             return Ok(true);
         }
 
-        let _file_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
-        let _line_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Magenta };
+        let _file_color = if self.delete_colour {
+            Colour::Rgb(255, 255, 255)
+        } else {
+            Colour::Purple
+        };
+        let _line_color = if self.delete_colour {
+            Colour::Rgb(255, 255, 255)
+        } else {
+            Colour::Magenta
+        };
 
         let colored_line = if self.delete_colour {
             Coloured::new(&clean_line, Colour::Rgb(255, 255, 255))
@@ -521,7 +586,8 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
                     Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
                     write!(out, ":")?;
                 }
-                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
+                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                    .write_to(&mut out)?;
                 write!(out, ": ")?;
                 colored_line.write_to(&mut out)?;
                 writeln!(out)?;
@@ -542,16 +608,20 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
         Ok(true)
     }
 
-    fn context(&mut self, _searcher: &grep_searcher::Searcher, mat: &grep_searcher::SinkContext<'_>) -> Result<bool, Self::Error> {
+    fn context(
+        &mut self,
+        _searcher: &grep_searcher::Searcher,
+        mat: &grep_searcher::SinkContext<'_>,
+    ) -> Result<bool, Self::Error> {
         if self.count_only {
             return Ok(true);
         }
 
         let clean_line = String::from_utf8_lossy(mat.bytes())
-        .lines()
-        .next()
-        .unwrap_or("")
-        .to_string();
+            .lines()
+            .next()
+            .unwrap_or("")
+            .to_string();
 
         if self.json_mode {
             let mut out = io::stdout().lock();
@@ -562,14 +632,22 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
                 out,
                 r#"{{"type":"context","path":"{}","line_number":{},"text":"{}"}}"#,
                 self.file_name.replace('\\', "\\\\").replace('"', "\\\""),
-                     line_num,
-                     escaped_line
+                line_num,
+                escaped_line
             )?;
             return Ok(true);
         }
 
-        let _file_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
-        let _line_color = if self.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Magenta };
+        let _file_color = if self.delete_colour {
+            Colour::Rgb(255, 255, 255)
+        } else {
+            Colour::Purple
+        };
+        let _line_color = if self.delete_colour {
+            Colour::Rgb(255, 255, 255)
+        } else {
+            Colour::Magenta
+        };
 
         let colored_line = if self.delete_colour {
             Coloured::new(&clean_line, Colour::Rgb(255, 255, 255))
@@ -585,7 +663,8 @@ impl<F> Sink for CustomSink<F> where F: for<'a> Fn(&'a str) -> Coloured<'a> {
                     Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
                     write!(out, "-")?;
                 }
-                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
+                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                    .write_to(&mut out)?;
                 write!(out, "- ")?;
                 colored_line.write_to(&mut out)?;
                 writeln!(out)?;
@@ -609,9 +688,13 @@ fn process_stdin(pattern: &str) {
     for (idx, line_result) in reader.lines().enumerate() {
         if let Ok(line) = line_result {
             if line.contains(pattern) {
-                Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold()).write_to(&mut out).ok();
+                Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold())
+                    .write_to(&mut out)
+                    .ok();
                 if write!(out, ": ").is_ok() {
-                    Coloured::new(&line, Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
+                    Coloured::new(&line, Colour::Rgb(255, 135, 0))
+                        .write_to(&mut out)
+                        .ok();
                     let _ = writeln!(out);
                 }
             }
@@ -620,18 +703,16 @@ fn process_stdin(pattern: &str) {
 }
 
 fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
-
     if config.hide_all {
         if let Ok(file) = File::open(path) {
             let mut buffer = [0; 1024];
 
             if let Ok(bytes_read) = file.take(1024).read(&mut buffer) {
-
                 #[cfg(target_os = "windows")]
                 {
                     if bytes_read >= 2 {
                         let has_utf16_bom = (buffer[0] == 0xFF && buffer[1] == 0xFE)
-                        || (buffer[0] == 0xFE && buffer[1] == 0xFF);
+                            || (buffer[0] == 0xFE && buffer[1] == 0xFF);
 
                         if !has_utf16_bom {
                             let mut looks_like_utf16_le = true;
@@ -641,19 +722,27 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
                                 let char_byte = buffer[i];
                                 let null_byte = buffer[i + 1];
 
-                                if null_byte == 0 && (char_byte.is_ascii_alphanumeric() || char_byte.is_ascii_whitespace() || char_byte == 0) {
-                                    if null_byte == 0 { null_count += 1; }
+                                if null_byte == 0
+                                    && (char_byte.is_ascii_alphanumeric()
+                                        || char_byte.is_ascii_whitespace()
+                                        || char_byte == 0)
+                                {
+                                    if null_byte == 0 {
+                                        null_count += 1;
+                                    }
                                 } else {
                                     looks_like_utf16_le = false;
                                     break;
                                 }
                             }
 
-                            if !looks_like_utf16_le && buffer[..bytes_read].iter().any(|&b| b == 0) {
+                            if !looks_like_utf16_le && buffer[..bytes_read].iter().any(|&b| b == 0)
+                            {
                                 return Ok(());
                             }
 
-                            if !looks_like_utf16_le && buffer[..bytes_read].iter().any(|&b| b == 0) {
+                            if !looks_like_utf16_le && buffer[..bytes_read].iter().any(|&b| b == 0)
+                            {
                                 return Ok(());
                             }
                         }
@@ -676,16 +765,25 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         let reader = BufReader::new(file);
 
         if !config.no_filename {
-            Coloured::with_style("📂 Cat View: ", Colour::Cyan, Style::bold()).write_to(&mut out).ok();
-            Coloured::with_style(&path.to_string_lossy(), Colour::Purple, Style::bold()).write_to(&mut out).ok();
-            let _ = writeln!(out, "\n──────────────────────────────────────────────────────────");
+            Coloured::with_style("📂 Cat View: ", Colour::Cyan, Style::bold())
+                .write_to(&mut out)
+                .ok();
+            Coloured::with_style(&path.to_string_lossy(), Colour::Purple, Style::bold())
+                .write_to(&mut out)
+                .ok();
+            let _ = writeln!(
+                out,
+                "\n──────────────────────────────────────────────────────────"
+            );
         }
 
         for (idx, line_result) in reader.lines().enumerate() {
             let line = line_result?;
 
             if config.line_numbers {
-                Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold()).write_to(&mut out).ok();
+                Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold())
+                    .write_to(&mut out)
+                    .ok();
                 let _ = write!(out, ": ");
             }
 
@@ -696,19 +794,28 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         return Ok(());
     }
 
-
     if config.show_time {
         let mut out = io::stdout().lock();
         if let Ok(timo_now) = TimoDateTime::now("Europe/London") {
             if !config.delete_colour {
                 let _ = write!(out, "[");
-                Coloured::with_style("TIMO RUNTIME", Colour::Cyan, Style::bold()).write_to(&mut out).ok();
+                Coloured::with_style("TIMO RUNTIME", Colour::Cyan, Style::bold())
+                    .write_to(&mut out)
+                    .ok();
                 let _ = write!(out, "] ");
-                Coloured::new(&timo_now.status_summary(), Colour::Rgb(255, 135, 0)).write_to(&mut out).ok();
-                let _ = writeln!(out, "\n──────────────────────────────────────────────────────────");
+                Coloured::new(&timo_now.status_summary(), Colour::Rgb(255, 135, 0))
+                    .write_to(&mut out)
+                    .ok();
+                let _ = writeln!(
+                    out,
+                    "\n──────────────────────────────────────────────────────────"
+                );
             } else {
                 let _ = writeln!(out, "[TIMO RUNTIME] {}", timo_now.status_summary());
-                let _ = writeln!(out, "──────────────────────────────────────────────────────────");
+                let _ = writeln!(
+                    out,
+                    "──────────────────────────────────────────────────────────"
+                );
             }
         }
     }
@@ -724,20 +831,18 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
     let mut matcher_builder = RegexMatcherBuilder::new();
     matcher_builder.case_insensitive(config.ignore_case);
 
-
     let matcher = match matcher_builder.build(&final_pattern) {
         Ok(m) => m,
         Err(e) => return Err(io::Error::new(io::ErrorKind::InvalidInput, e)),
     };
 
     let mut searcher = SearcherBuilder::new()
-    .after_context(config.context_after)
-    .invert_match(config.invert_match)
-    .build();
+        .after_context(config.context_after)
+        .invert_match(config.invert_match)
+        .build();
 
-    let orange_formatter: for<'a> fn(&'a str) -> Coloured<'a> = |line| {
-        Coloured::new(line, Colour::Orange)
-    };
+    let orange_formatter: for<'a> fn(&'a str) -> Coloured<'a> =
+        |line| Coloured::new(line, Colour::Orange);
 
     let mut sink = CustomSink {
         file_name: path.to_string_lossy().into_owned(),
@@ -761,9 +866,21 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
     if config.tree_view && !sink.buffered_matches.is_empty() {
         let mut out = io::stdout().lock();
 
-        let file_tree_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
-        let _line_tree_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Magenta };
-        let _leaf_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Orange };
+        let file_tree_color = if config.delete_colour {
+            Colour::Rgb(255, 255, 255)
+        } else {
+            Colour::Purple
+        };
+        let _line_tree_color = if config.delete_colour {
+            Colour::Rgb(255, 255, 255)
+        } else {
+            Colour::Magenta
+        };
+        let _leaf_color = if config.delete_colour {
+            Colour::Rgb(255, 255, 255)
+        } else {
+            Colour::Orange
+        };
 
         if !config.delete_colour {
             Coloured::new("📄 ", Colour::Cyan).write_to(&mut out)?;
@@ -779,7 +896,8 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
 
             if config.line_numbers && *line_num > 0 {
                 let _ = write!(out, "[");
-                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold()).write_to(&mut out)?;
+                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                    .write_to(&mut out)?;
                 let _ = write!(out, "] ");
             }
 
@@ -792,7 +910,11 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
 
     if config.count_only && sink.match_count > 0 {
         let mut out = io::stdout().lock();
-        let count_file_color = if config.delete_colour { Colour::Rgb(255, 255, 255) } else { Colour::Purple };
+        let count_file_color = if config.delete_colour {
+            Colour::Rgb(255, 255, 255)
+        } else {
+            Colour::Purple
+        };
 
         if !config.no_filename {
             Coloured::new(&sink.file_name, count_file_color).write_to(&mut out)?;

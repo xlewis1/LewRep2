@@ -4,7 +4,7 @@
 
 Engineered to seamlessly handle complex pipelines, it fully supports standard UNIX piping constraints, allowing you to fluidly pass data into and out of core system utilities like `grep`, `ripgrep`, `tree`, `cat`, `ls`, and more.
 
-## 📊 Performance Showdown (.txt Scan Rematch)
+## 📊 Performance Showdown 
 
 Measured using high-precision execution telemetry (`lewtime`) on an Apple Silicon architecture:
 
@@ -25,6 +25,9 @@ ubuntu@lewlinux:~/lewrep2$ time ./target/release/lewrep2 "Config" .
 real    0m0.004s
 user    0m0.003s
 sys     0m0.001s
+
+### NIXOS Performance
+lewrep2 "." src/main.rs  0.01s user 0.01s system 67% cpu 0.027 total
 
 ## Why is it so fast?
 
@@ -77,7 +80,7 @@ this program uses grep_regex, grep-searcher, walkbuilder, ignore which all belon
 
 ## 🛠️ Installation & Building
 
-Since `lewrep2` is 100% cross-platform at the source level, you can compile it natively for macOS, Linux, or Windows.
+Since `lewrep2` is 100% cross-platform at the source level, you can compile it natively for macOS, Linux, Windows, NixOS.
 
 ```bash
 # Clone the repository
@@ -86,4 +89,8 @@ cd LewRep2
 
 # Build a hyper-optimized release binary
 cargo build --release
-or use RUSTFLAGS="-C target-cpu=native" cargo build --release for maximum power. 
+or use RUSTFLAGS="-C target-cpu=native" cargo build --release for maximum power.
+
+#for nixOS builds
+nix run github:xlewis1/LewRep2 -- "pattern" path/to/file.rs
+nix build 

@@ -1,2 +1,0 @@
-Rust programming is fast.
-This line has an orange match too!
