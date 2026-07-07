@@ -89,4 +89,8 @@ cd LewRep2
 
 # Build a hyper-optimized release binary
 cargo build --release
-or use RUSTFLAGS="-C target-cpu=native" cargo build --release for maximum power. 
+or use RUSTFLAGS="-C target-cpu=native" cargo build --release for maximum power.
+
+#for nixOS builds
+nix run github:xlewis1/LewRep2 -- "pattern" path/to/file.rs
+nix build 
