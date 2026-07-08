@@ -1,4 +1,4 @@
-use chrono::{DateTime, TimeZone, Utc, Datelike, Offset}; // Timelike was unused
+use chrono::{DateTime, TimeZone, Utc, Datelike, Offset};
 use chrono_tz::Tz;
 
 
@@ -47,10 +47,11 @@ impl TimoDateTime {
     pub fn status_summary(&self) -> String {
         use chrono_tz::OffsetName;
         format!(
-            "Time: {} | Zone: {} | Season: {}",
+            "Time: {} | Zone: {} | Season: {} | Moon: {}",
             self.inner.format("%Y-%m-%d %H:%M:%S"),
             self.inner.offset().abbreviation(),
-            if self.is_summertime() { "Summertime (DST)"} else { "Wintertime / Standard Time"}
+            if self.is_summertime() { "Summertime (DST)"} else { "Wintertime / Standard Time"},
+            self.moon_phase()
         )
     }
 
@@ -96,5 +97,42 @@ impl TimoDateTime {
             5 => "May", 6 => "June", 7 => "July", 8 => "August",
             9 => "September", 10 => "October", 11 => "November", _ => "December",
         }.to_string()
+    }
+
+    pub fn moon_phase(&self) -> &'static str {
+        let year = self.inner.year() as i32;
+        let month = self.inner.month() as i32;
+        let day = self.inner.day() as i32;
+
+        let c = year / 100;
+        let mut y = year % 100;
+
+        let mut m = month;
+        if m < 3 {
+            y -= 1;
+            m += 12;
+        }
+
+        let mut epact = (11 * (y % 19) + 11) % 30;
+
+        if c == 20 {
+            epact = (epact + 29) % 30;
+        }
+
+        let mut age = (epact + day + (m - 3) + 2) % 30;
+        if age < 0 {
+            age += 30;
+        }
+
+        match age {
+            0 | 29 => "🌑 New Moon",
+            1..=6  => "🌒 Waxing Crescent",
+            7..=8  => "🌓 First Quarter",
+            9..=13 => "🌔 Waxing Gibbous",
+            14..=15 => "🌕 Full Moon",
+            16..=21 => "🌖 Waning Gibbous",
+            22..=23 => "🌗 Third Quarter",
+            _       => "🌘 Waning Crescent",
+        }
     }
 }
