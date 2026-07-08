@@ -16,6 +16,7 @@ struct Config {
     filenames_only: bool,
     explicit_ignore: bool,
     context_after: usize,
+    context_before: usize,
     count_only: bool,
     unrestricted_level: usize,
     explain_mode: bool,
@@ -57,6 +58,8 @@ FLAGS:
     -j, --json              Stream structural data components formatted as raw JSON.
     -X, --explain           Interactively clarify capture group structural properties.
     -A <NUM>                Append context detailing trailing data lines.
+    -B <NUM>                Print Num lines of trailing context before matching lines.
+    -C <NUM>                Print Num lines of trailing context before and after matching lines.
     -x <EXT|EXT|...>        Limit target evaluation queries to a pipe-separated list of
                             file extensions ( -x "rs", -x "c|h", -x "cpp|hpp|cc|cxx").
     --Hide                  Omit structured path matching binary formatting properties.
@@ -134,6 +137,10 @@ FLAGS
 
        -A <NUM>
              Print NUM lines of trailing context after matching lines.
+       -B <NUM>
+             Print Num lines of trailing context before matching lines.
+       -C <NUM>
+             Print Num lines of trailing context before and after matching lines.
 
        -x <EXT|EXT|...>
              Limit search to files matching a pipe-separated list of
@@ -226,6 +233,7 @@ fn main() {
     let mut filenames_only = false;
     let mut explicit_ignore = false;
     let mut context_after = 0;
+    let mut context_before = 0;
     let mut count_only = false;
     let mut unrestricted_level = 0;
     let mut explain_mode = false;
@@ -285,6 +293,20 @@ fn main() {
                 }
                 continue;
             }
+            if arg == "-B" {
+                if let Some(num_str) = args_iter.next() {
+                    context_before = num_str.parse::<usize>().unwrap_or(0);
+                }
+                continue;
+            }
+            if arg == "-C" {
+                if let Some(num_str) = args_iter.next() {
+                    let num = num_str.parse::<usize>().unwrap_or(0);
+                    context_after = num;
+                    context_before = num;
+                }
+                continue;
+            }
 
             for c in arg.chars().skip(1) {
                 match c {
@@ -333,6 +355,7 @@ fn main() {
         filenames_only,
         explicit_ignore,
         context_after,
+        context_before,
         count_only,
         unrestricted_level,
         explain_mode,
@@ -915,6 +938,7 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
     };
 
     let mut searcher = SearcherBuilder::new()
+        .before_context(config.context_before)
         .after_context(config.context_after)
         .invert_match(config.invert_match)
         .build();
