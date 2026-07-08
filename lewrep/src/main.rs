@@ -29,6 +29,7 @@ struct Config {
     extensions: Vec<String>,
     cat_mode: bool,
     show_time: bool,
+    only_matching: bool,
 }
 
 const HELP_TEXT: &str = r#"
@@ -49,6 +50,7 @@ FLAGS:
     -l, --files-with-matches Print only names of target files matching specifications.
     -c, --count             Print exclusively total matching record line metrics per file.
     -h                      doesn't print filenames, just the files text.
+    -o                      matches only the specific pattern you searched.
     -w, --word-regexp       Bound regular expression to validate complete word sequences.
     -T, --tree              Format match visual layout structural mappings hierarchically.
     -d, --delete-colour     Strip text styling components before output execution.
@@ -126,6 +128,9 @@ FLAGS
 
        -X, --explain
              Explain regular expression match captures interactively.
+        
+       -o  --Matching only
+             Matches only the pattern you searched not the full text.
 
        -A <NUM>
              Print NUM lines of trailing context after matching lines.
@@ -233,6 +238,7 @@ fn main() {
     let mut json_mode = false;
     let mut cat_mode = false;
     let mut show_time = false;
+    let mut only_matching = false;
     let mut extensions: Vec<String> = Vec::new();
 
     let mut args_iter = args.iter().skip(1);
@@ -296,6 +302,7 @@ fn main() {
                     'd' => delete_colour = true,
                     'j' => json_mode = true,
                     't' => show_time = true,
+                    'o' => only_matching = true,
                     _ => {
                         eprintln!("Error: Unknown flag '-{}'", c);
                         std::process::exit(1);
@@ -339,6 +346,7 @@ fn main() {
         extensions,
         cat_mode,
         show_time,
+        only_matching,
     };
 
     let mut target_files = Vec::new();
@@ -437,6 +445,7 @@ where
     tree_view: bool,
     delete_colour: bool,
     json_mode: bool,
+    only_matching: bool,
     buffered_matches: Vec<(usize, String)>,
 }
 
@@ -580,26 +589,65 @@ where
             (self.orange_formatter)(&clean_line)
         };
 
-        if self.show_line_numbers {
-            if let Some(line_num) = mat.line_number() {
+        if self.only_matching {
+            if let Some(idx) = clean_line.find(&self.pattern) {
+                let remainder = &clean_line[idx..];
+
+                let mat_str = remainder
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .trim_matches(|c: char| !c.is_alphanumeric() && c != ':');
+
+                let colored_match = if self.delete_colour {
+                   Coloured::new(mat_str, Colour::Rgb(255, 255, 255)) 
+                } else {
+                   (self.orange_formatter)(mat_str)
+                };
+
+                if self.show_line_numbers {
+                    if let Some(line_num) = mat.line_number() {
+                        if !self.no_filename {
+                            Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                            write!(out, ":")?;
+                        }
+                        Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                            .write_to(&mut out)?;
+                        write!(out, ": ")?;
+                    }
+                } else if !self.no_filename {
+                    Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                    write!(out, ": ")?;
+                }
+
+                colored_match.write_to(&mut out)?;
+                writeln!(out)?;
+            }
+
+            return Ok(true);
+        } else {
+            if self.show_line_numbers {
+                if let Some(line_num) = mat.line_number() {
+                    if !self.no_filename {
+                        Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                        let _ = write!(out, ":");
+                    }
+                    Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                        .write_to(&mut out)?;
+                    write!(out, ": ")?;
+                    colored_line.write_to(&mut out)?;
+                    writeln!(out)?;
+                }
+            } else {
                 if !self.no_filename {
                     Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-                    write!(out, ":")?;
+                    write!(out, ": ")?;
                 }
-                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
-                    .write_to(&mut out)?;
-                write!(out, ": ")?;
                 colored_line.write_to(&mut out)?;
                 writeln!(out)?;
             }
-        } else {
-            if !self.no_filename {
-                Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
-                write!(out, ": ")?;
-            }
-            colored_line.write_to(&mut out)?;
-            writeln!(out)?;
         }
+
 
         if self.explain_mode {
             self.execute_explanation(mat.bytes());
@@ -655,6 +703,8 @@ where
             (self.orange_formatter)(&clean_line)
         };
 
+
+
         let mut out = io::stdout().lock();
 
         if self.show_line_numbers {
@@ -682,16 +732,44 @@ where
 }
 
 fn process_stdin(pattern: &str) {
+    // Collect the raw arguments to check for flags
+    let args_list: Vec<String> = std::env::args().collect();
+    let only_matching = args_list.iter().any(|arg| arg == "-o" || arg == "--only-matching");
+    let line_numbers = args_list.iter().any(|arg| arg == "-n" || arg == "--line-number");
+
     let reader = BufReader::new(stdin());
     let mut out = io::stdout().lock();
 
     for (idx, line_result) in reader.lines().enumerate() {
         if let Ok(line) = line_result {
             if line.contains(pattern) {
-                Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold())
-                    .write_to(&mut out)
-                    .ok();
-                if write!(out, ": ").is_ok() {
+                if only_matching {
+                    if let Some(idx_match) = line.find(pattern) {
+                        let remainder = &line[idx_match..];
+                        let mat_str = remainder
+                            .split_whitespace()
+                            .next()
+                            .unwrap_or("")
+                            .trim_matches(|c: char| !c.is_alphanumeric() && c != ':');
+
+                        if line_numbers {
+                            Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold())
+                                .write_to(&mut out)
+                                .ok();
+                            let _ = write!(out, ": ");
+                        }
+                        Coloured::new(mat_str, Colour::Rgb(255, 135, 0))
+                            .write_to(&mut out)
+                            .ok();
+                        let _ = writeln!(out);
+                    }
+                } else {
+                    if line_numbers {
+                        Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold())
+                            .write_to(&mut out)
+                            .ok();
+                        let _ = write!(out, ": ");
+                    }
                     Coloured::new(&line, Colour::Rgb(255, 135, 0))
                         .write_to(&mut out)
                         .ok();
@@ -858,6 +936,7 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
         tree_view: config.tree_view,
         delete_colour: config.delete_colour,
         json_mode: config.json_mode,
+        only_matching: config.only_matching,
         buffered_matches: Vec::new(),
     };
 
