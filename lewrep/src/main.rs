@@ -43,7 +43,7 @@ lewrep2 [FLAGS] [PATTERN] [PATH...]
 A parallel grep utility designed to quickly scan directories using regular expressions.
 
 FLAGS:
---help                  Display the help manual document layout.
+    --help                  Display the help manual document layout.
     --manpage               Display the comprehensive manual document layout.
     -i, --ignore-case       Perform case-insensitive text evaluation.
     -n, --line-number       Prefix each match line with its 1-based sequential line index.
