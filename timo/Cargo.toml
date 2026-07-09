@@ -1,8 +1,13 @@
 [package]
-name = "timo"
+name = "lew-timo"
 version = "0.1.0"
 edition = "2024"
+description = "A lightweight, high-performance runtime tracking and calendar library"
+license = "MIT"
+repository = "https://github.com/xlewis1/LewRep2"
+
 
 [dependencies]
 chrono = { version = "0.4", features = ["alloc"] }
 chrono-tz = "0.9"
+
