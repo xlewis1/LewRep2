@@ -1,5 +1,6 @@
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{SearcherBuilder, Sink, SinkMatch};
+use std::sync::atomic::{AtomicU64, Ordering};
 use ignore::WalkBuilder;
 use lewcolour::{Colour, Coloured, Style};
 use rayon::prelude::*;
@@ -161,6 +162,9 @@ AUTHOR
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    let total_bytes_scanned = std::sync::atomic::AtomicU64::new(0);
+    let total_files_scanned = std::sync::atomic::AtomicU64::new(0);
 
     if args.iter().any(|arg| arg == "--help") {
         let stdout = io::stdout();
@@ -441,13 +445,19 @@ fn main() {
                         }
                     }
                 }
+                
+                if let Ok(metadata) = entry.metadata() {
+                    total_bytes_scanned.fetch_add(metadata.len(), std::sync::atomic::Ordering::Relaxed);
+                    total_files_scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                }
+
                 target_files.push(entry.into_path());
             }
         }
     }
 
     target_files.par_iter().for_each(|file_path| {
-        let _ = search_in_file(file_path, &config);
+        let _ = search_in_file(file_path, &config, &total_bytes_scanned, &total_files_scanned);
     });
 }
 
@@ -803,7 +813,7 @@ fn process_stdin(pattern: &str) {
     }
 }
 
-fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
+fn search_in_file(path: &Path, config: &Config, total_bytes_scanned: &std::sync::atomic::AtomicU64, total_files_scanned: &std::sync::atomic::AtomicU64) -> io::Result<()> {
     if config.hide_all {
         if let Ok(file) = File::open(path) {
             let mut buffer = [0; 1024];
@@ -898,6 +908,14 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
     if config.show_time {
         let mut out = io::stdout().lock();
         if let Ok(timo_now) = TimoDateTime::now("Europe/London") {
+            let bytes = total_bytes_scanned.load(std::sync::atomic::Ordering::Relaxed);
+            let files = total_files_scanned.load(std::sync::atomic::Ordering::Relaxed);
+
+            let formatted_total_size = fsize_core::format_size(bytes as u128, None, false);
+
+            let avg_bytes = if files > 0 { bytes / files } else { 0 };
+            let formatted_avg_size = fsize_core::format_size(avg_bytes as u128, None, false);
+
             if !config.delete_colour {
                 let _ = write!(out, "[");
                 Coloured::with_style("TIMO RUNTIME", Colour::Cyan, Style::bold())
@@ -907,6 +925,17 @@ fn search_in_file(path: &Path, config: &Config) -> io::Result<()> {
                 Coloured::new(&timo_now.status_summary(), Colour::Rgb(255, 135, 0))
                     .write_to(&mut out)
                     .ok();
+                let _ = write!(out, "\n[");
+                Coloured::with_style("STORAGE INSIGHTS", Colour::Green, Style::bold())
+                    .write_to(&mut out)
+                    .ok();
+                let _ = write!(out, "] Scanned Files: ");
+                Coloured::new(&files.to_string(), Colour::Yellow).write_to(&mut out).ok();
+                let _ = write!(out, " | Aggregate Volume: ");
+                Coloured::new(&formatted_total_size, Colour::Yellow).write_to(&mut out).ok();
+                let _ = write!(out, " | Average Size: ");
+                Coloured::new(&formatted_avg_size, Colour::Yellow).write_to(&mut out).ok();
+
                 let _ = writeln!(
                     out,
                     "\n──────────────────────────────────────────────────────────"
