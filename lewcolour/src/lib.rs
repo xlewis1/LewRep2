@@ -11,6 +11,8 @@ pub enum Colour {
     Yellow,
     Cyan,
     Magenta,
+    Black,
+    White,
     Rgb(u8, u8, u8),
     Reset,
 }
@@ -130,6 +132,14 @@ pub fn write_colour_prefix<W: Write>(
             if !first { w.write_all(b";")?; }
             w.write_all(b"35")?;
         }
+        Colour::Black => {
+            if !first { w.write_all(b";")?; }
+            w.write_all(b"30")?;
+        }
+        Colour::White => {
+            if !first { w.write_all(b";")?; }
+            w.write_all(b"37")?;
+        }
         Colour::Rgb(r, g, b) => {
             if !first { w.write_all(b";")?; }
             write!(w, "38;2;{};{};{}", r, g, b)?;
@@ -156,4 +166,12 @@ pub fn orange_bold<'a>(text: &'a str) -> Coloured<'a> {
 
 pub fn red_bold<'a>(text: &'a str) -> Coloured<'a> {
     Coloured::with_style(text, Colour::Red, Style::bold())
+}
+
+pub fn white_bold<'a>(text: &'a str) -> Coloured<'a> {
+    Coloured::with_style(text, Colour::White, Style::bold())
+}
+
+pub fn black_bold<'a>(text: &'a str) -> Coloured<'a> {
+    Coloured::with_style(text, Colour::Black, Style::bold())
 }
