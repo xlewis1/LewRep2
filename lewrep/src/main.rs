@@ -44,31 +44,32 @@ lewrep2 [FLAGS] [PATTERN] [PATH...]
 A parallel grep utility designed to quickly scan directories using regular expressions.
 
 FLAGS:
---help                  Display the help manual document layout.
-    --manpage               Display the comprehensive manual document layout.
-    -i, --ignore-case       Perform case-insensitive text evaluation.
-    -n, --line-number       Prefix each match line with its 1-based sequential line index.
-    -v, --invert-match      Invert query matching selection properties.
-    -l, --files-with-matches Print only names of target files matching specifications.
-    -c, --count             Print exclusively total matching record line metrics per file.
-    -h                      doesn't print filenames, just the files text.
-    -o                      matches only the specific pattern you searched.
-    -w, --word-regexp       Bound regular expression to validate complete word sequences.
-    -T, --tree              Format match visual layout structural mappings hierarchically.
-    -d, --delete-colour     Strip text styling components before output execution.
-    -j, --json              Stream structural data components formatted as raw JSON.
-    -X, --explain           Interactively clarify capture group structural properties.
-    -A <NUM>                Append context detailing trailing data lines.
-    -B <NUM>                Print Num lines of trailing context before matching lines.
-    -C <NUM>                Print Num lines of trailing context before and after matching lines.
-    -x <EXT|EXT|...>        Limit target evaluation queries to a pipe-separated list of
-                            file extensions ( -x "rs", -x "c|h", -x "cpp|hpp|cc|cxx").
-    --Hide                  Omit structured path matching binary formatting properties.
-    --vscode                Override defaults to scan structural .vscode tracking areas.
-    -u, -uu and -uuu        Shows .gitignore, hidden files and binaries.
-    --Hide                  Does the opposite to "-u" and hides hidden files, binaries and .gitignore.
-    --cat                   prints cat-style text prints.
-    --time                  shows the time via my Timo date/time library crate.
+    --help                      Display the help manual document layout.
+    --manpage                   Display the comprehensive manual document layout.
+    -i, --ignore-case           Perform case-insensitive text evaluation.
+    -n, --line-number           Prefix each match line with its 1-based sequential line index.
+    -v, --invert-match          Invert query matching selection properties.
+    -l, --files-with-matches    Print only names of target files matching specifications.
+    -c, --count                 Print exclusively total matching record line metrics per file.
+    -h                          doesn't print filenames, just the files text.
+    -o                          matches only the specific pattern you searched.
+    -w, --word-regexp           Bound regular expression to validate complete word sequences.
+    -T, --tree                  Format match visual layout structural mappings hierarchically.
+    -d, --delete-colour         Strip text styling components before output execution.
+    -j, --json                  Stream structural data components formatted as raw JSON.
+    -X, --explain               Interactively clarify capture group structural properties.
+    -A <NUM>                    Append context detailing trailing data lines.
+    -B <NUM>                    Print Num lines of trailing context before matching lines.
+    -C <NUM>                    Print Num lines of trailing context before and after matching lines.
+    -x <EXT|EXT|...>            Limit target evaluation queries to a pipe-separated list of
+                                file extensions ( -x "rs", -x "c|h", -x "cpp|hpp|cc|cxx").
+    --Hide                      Omit structured path matching binary formatting properties.
+    --vscode                    Override defaults to scan structural .vscode tracking areas.
+    -u, -uu and -uuu            Shows .gitignore, hidden files and binaries.
+    --Hide                      Does the opposite to "-u" and hides hidden files,
+                                binaries and .gitignore.
+    --cat                       prints cat-style text prints.
+    --time                      shows the time via my Timo date/time library crate.
 
 Examples:
     lewrep2 "struct Config" .
@@ -107,20 +108,21 @@ FLAGS
        -l, --files-with-matches
              Only print the name of each file that contains matches.
 
-       -u --Unrestricted mode
+       -u, --Unrestricted mode
              include hidden files.
 
-       -uu --include hidden
+       -uu, --include hidden
              includes hidden directories.
 
-       -uuu --show everything
+       -uuu, --show everything
              include binary files and all normally excluded content.
 
        -c, --count
              Only print a count of matching lines per file.
 
-       -h --no filename
+       -h, --no filename
               removes filename and just returns the files text.
+
        -w, --word-regexp
              Match only whole words matching PATTERN.
 
@@ -133,13 +135,15 @@ FLAGS
        -X, --explain
              Explain regular expression match captures interactively.
         
-       -o  --Matching only
+       -o, --Matching only
              Matches only the pattern you searched not the full text.
 
        -A <NUM>
              Print NUM lines of trailing context after matching lines.
+
        -B <NUM>
              Print Num lines of trailing context before matching lines.
+
        -C <NUM>
              Print Num lines of trailing context before and after matching lines.
 
@@ -605,19 +609,19 @@ where
             return Ok(true);
         }
 
-        let _file_color = if self.delete_colour {
-            Colour::Rgb(255, 255, 255)
+        let file_color = if self.delete_colour {
+            Colour::Reset
         } else {
             Colour::Purple
         };
-        let _line_color = if self.delete_colour {
-            Colour::Rgb(255, 255, 255)
+        let line_color = if self.delete_colour {
+            Colour::Reset
         } else {
             Colour::Magenta
         };
 
         let colored_line = if self.delete_colour {
-            Coloured::new(&clean_line, Colour::Rgb(255, 255, 255))
+            Coloured::new(&clean_line, Colour::Reset)
         } else {
             (self.orange_formatter)(&clean_line)
         };
@@ -633,7 +637,7 @@ where
                     .trim_matches(|c: char| !c.is_alphanumeric() && c != ':');
 
                 let colored_match = if self.delete_colour {
-                   Coloured::new(mat_str, Colour::Rgb(255, 255, 255)) 
+                   Coloured::new(mat_str, Colour::Reset)
                 } else {
                    (self.orange_formatter)(mat_str)
                 };
@@ -641,15 +645,15 @@ where
                 if self.show_line_numbers {
                     if let Some(line_num) = mat.line_number() {
                         if !self.no_filename {
-                            Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                            Coloured::new(&self.file_name, file_color).write_to(&mut out)?;
                             write!(out, ":")?;
                         }
-                        Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                        Coloured::with_style(&line_num.to_string(), line_color, Style::bold())
                             .write_to(&mut out)?;
                         write!(out, ": ")?;
                     }
                 } else if !self.no_filename {
-                    Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                    Coloured::new(&self.file_name, file_color).write_to(&mut out)?;
                     write!(out, ": ")?;
                 }
 
@@ -662,10 +666,10 @@ where
             if self.show_line_numbers {
                 if let Some(line_num) = mat.line_number() {
                     if !self.no_filename {
-                        Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                        Coloured::new(&self.file_name, file_color).write_to(&mut out)?;
                         let _ = write!(out, ":");
                     }
-                    Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                    Coloured::with_style(&line_num.to_string(), line_color, Style::bold())
                         .write_to(&mut out)?;
                     write!(out, ": ")?;
                     colored_line.write_to(&mut out)?;
@@ -673,7 +677,7 @@ where
                 }
             } else {
                 if !self.no_filename {
-                    Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                    Coloured::new(&self.file_name, file_color).write_to(&mut out)?;
                     write!(out, ": ")?;
                 }
                 colored_line.write_to(&mut out)?;
