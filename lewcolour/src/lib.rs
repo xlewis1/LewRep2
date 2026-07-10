@@ -24,22 +24,21 @@ pub struct Style {
     pub dim: bool,
 }
 
-
 impl Style {
     pub const fn new() -> Self {
         Self { bold: false, underline: false, dim: false }
     }
 
-    pub const fn bold() -> Self {
-        Self { bold: true, underline: false, dim: false }
+    pub const fn bold(self) -> Self {
+        Self { bold: true, ..self }
     }
 
-     pub const fn underline() -> Self {
-        Self { bold: false, underline: true, dim: false }
+    pub const fn underline(self) -> Self {
+        Self { underline: true, ..self }
     }
 
-    pub const fn dim() -> Self {
-        Self { bold: false, underline: false, dim: true }
+    pub const fn dim(self) -> Self {
+        Self { dim: true, ..self }
     }
 }
 

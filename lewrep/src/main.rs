@@ -1,6 +1,7 @@
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{SearcherBuilder, Sink, SinkMatch};
-use std::sync::atomic::{AtomicU64, Ordering};
+// unused imports
+// use std::sync::atomic::{AtomicU64, Ordering};
 use ignore::WalkBuilder;
 use lewcolour::{Colour, Coloured, Style};
 use rayon::prelude::*;
@@ -917,7 +918,7 @@ fn search_in_file(path: &Path, config: &Config, total_bytes_scanned: &std::sync:
 
             let formatted_total_size = fsize_core::format_size(bytes as u128, None, false);
 
-            let avg_bytes = if files > 0 { bytes / files } else { 0 };
+            let avg_bytes = bytes.checked_div(files).unwrap_or(0);
             let formatted_avg_size = fsize_core::format_size(avg_bytes as u128, None, false);
 
             if !config.delete_colour {
