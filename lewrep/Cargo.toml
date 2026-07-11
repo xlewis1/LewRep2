@@ -2,6 +2,8 @@
 name = "lewrep2"
 version = "2.1.0"
 edition = "2021"
+description = "A parallel grep-class CLI tool with tree view, JSON output, and regex explain mode"
+license = "MIT"
 
 [dependencies]
 lewcolour = "0.1.0"
