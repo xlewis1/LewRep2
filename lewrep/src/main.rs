@@ -1,12 +1,12 @@
 use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{SearcherBuilder, Sink, SinkMatch};
-use std::sync::atomic::{AtomicU64, Ordering};
 use ignore::WalkBuilder;
 use lewcolour::{Colour, Coloured, Style};
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, BufReader, IsTerminal, Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use timo::TimoDateTime;
 
 struct Config {
@@ -167,8 +167,8 @@ AUTHOR
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
-    let total_bytes_scanned = std::sync::atomic::AtomicU64::new(0);
-    let total_files_scanned = std::sync::atomic::AtomicU64::new(0);
+    let total_bytes_scanned = AtomicU64::new(0);
+    let total_files_scanned = AtomicU64::new(0);
 
     if args.iter().any(|arg| arg == "--help") {
         let stdout = io::stdout();
@@ -449,10 +449,10 @@ fn main() {
                         }
                     }
                 }
-                
+
                 if let Ok(metadata) = entry.metadata() {
-                    total_bytes_scanned.fetch_add(metadata.len(), std::sync::atomic::Ordering::Relaxed);
-                    total_files_scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    total_bytes_scanned.fetch_add(metadata.len(), Ordering::Relaxed);
+                    total_files_scanned.fetch_add(1, Ordering::Relaxed);
                 }
 
                 target_files.push(entry.into_path());
@@ -461,7 +461,12 @@ fn main() {
     }
 
     target_files.par_iter().for_each(|file_path| {
-        let _ = search_in_file(file_path, &config, &total_bytes_scanned, &total_files_scanned);
+        let _ = search_in_file(
+            file_path,
+            &config,
+            &total_bytes_scanned,
+            &total_files_scanned,
+        );
     });
 }
 
@@ -637,9 +642,9 @@ where
                     .trim_matches(|c: char| !c.is_alphanumeric() && c != ':');
 
                 let colored_match = if self.delete_colour {
-                   Coloured::new(mat_str, Colour::Reset)
+                    Coloured::new(mat_str, Colour::Reset)
                 } else {
-                   (self.orange_formatter)(mat_str)
+                    (self.orange_formatter)(mat_str)
                 };
 
                 if self.show_line_numbers {
@@ -685,7 +690,6 @@ where
             }
         }
 
-
         if self.explain_mode {
             self.execute_explanation(mat.bytes());
         }
@@ -723,34 +727,32 @@ where
             return Ok(true);
         }
 
-        let _file_color = if self.delete_colour {
-            Colour::Rgb(255, 255, 255)
+        let file_color = if self.delete_colour {
+            Colour::Reset
         } else {
             Colour::Purple
         };
-        let _line_color = if self.delete_colour {
-            Colour::Rgb(255, 255, 255)
+        let line_color = if self.delete_colour {
+            Colour::Reset
         } else {
             Colour::Magenta
         };
 
         let colored_line = if self.delete_colour {
-            Coloured::new(&clean_line, Colour::Rgb(255, 255, 255))
+            Coloured::new(&clean_line, Colour::Reset)
         } else {
             (self.orange_formatter)(&clean_line)
         };
-
-
 
         let mut out = io::stdout().lock();
 
         if self.show_line_numbers {
             if let Some(line_num) = mat.line_number() {
                 if !self.no_filename {
-                    Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                    Coloured::new(&self.file_name, file_color).write_to(&mut out)?;
                     write!(out, "-")?;
                 }
-                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                Coloured::with_style(&line_num.to_string(), line_color, Style::bold())
                     .write_to(&mut out)?;
                 write!(out, "- ")?;
                 colored_line.write_to(&mut out)?;
@@ -758,7 +760,7 @@ where
             }
         } else {
             if !self.no_filename {
-                Coloured::new(&self.file_name, Colour::Purple).write_to(&mut out)?;
+                Coloured::new(&self.file_name, file_color).write_to(&mut out)?;
                 write!(out, "- ")?;
             }
             colored_line.write_to(&mut out)?;
@@ -771,8 +773,12 @@ where
 fn process_stdin(pattern: &str) {
     // Collect the raw arguments to check for flags
     let args_list: Vec<String> = std::env::args().collect();
-    let only_matching = args_list.iter().any(|arg| arg == "-o" || arg == "--only-matching");
-    let line_numbers = args_list.iter().any(|arg| arg == "-n" || arg == "--line-number");
+    let only_matching = args_list
+        .iter()
+        .any(|arg| arg == "-o" || arg == "--only-matching");
+    let line_numbers = args_list
+        .iter()
+        .any(|arg| arg == "-n" || arg == "--line-number");
 
     let reader = BufReader::new(stdin());
     let mut out = io::stdout().lock();
@@ -790,9 +796,13 @@ fn process_stdin(pattern: &str) {
                             .trim_matches(|c: char| !c.is_alphanumeric() && c != ':');
 
                         if line_numbers {
-                            Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold())
-                                .write_to(&mut out)
-                                .ok();
+                            Coloured::with_style(
+                                &(idx + 1).to_string(),
+                                Colour::Magenta,
+                                Style::bold(),
+                            )
+                            .write_to(&mut out)
+                            .ok();
                             let _ = write!(out, ": ");
                         }
                         Coloured::new(mat_str, Colour::Rgb(255, 135, 0))
@@ -802,9 +812,13 @@ fn process_stdin(pattern: &str) {
                     }
                 } else {
                     if line_numbers {
-                        Coloured::with_style(&(idx + 1).to_string(), Colour::Magenta, Style::bold())
-                            .write_to(&mut out)
-                            .ok();
+                        Coloured::with_style(
+                            &(idx + 1).to_string(),
+                            Colour::Magenta,
+                            Style::bold(),
+                        )
+                        .write_to(&mut out)
+                        .ok();
                         let _ = write!(out, ": ");
                     }
                     Coloured::new(&line, Colour::Rgb(255, 135, 0))
@@ -817,7 +831,12 @@ fn process_stdin(pattern: &str) {
     }
 }
 
-fn search_in_file(path: &Path, config: &Config, total_bytes_scanned: &std::sync::atomic::AtomicU64, total_files_scanned: &std::sync::atomic::AtomicU64) -> io::Result<()> {
+fn search_in_file(
+    path: &Path,
+    config: &Config,
+    total_bytes_scanned: &std::sync::atomic::AtomicU64,
+    total_files_scanned: &std::sync::atomic::AtomicU64,
+) -> io::Result<()> {
     if config.hide_all {
         if let Ok(file) = File::open(path) {
             let mut buffer = [0; 1024];
@@ -912,12 +931,12 @@ fn search_in_file(path: &Path, config: &Config, total_bytes_scanned: &std::sync:
     if config.show_time {
         let mut out = io::stdout().lock();
         if let Ok(timo_now) = TimoDateTime::now("Europe/London") {
-            let bytes = total_bytes_scanned.load(std::sync::atomic::Ordering::Relaxed);
-            let files = total_files_scanned.load(std::sync::atomic::Ordering::Relaxed);
+            let bytes = total_bytes_scanned.load(Ordering::Relaxed);
+            let files = total_files_scanned.load(Ordering::Relaxed);
 
             let formatted_total_size = fsize_core::format_size(bytes as u128, None, false);
 
-            let avg_bytes = if files > 0 { bytes / files } else { 0 };
+            let avg_bytes = bytes.checked_div(files).unwrap_or(0);
             let formatted_avg_size = fsize_core::format_size(avg_bytes as u128, None, false);
 
             if !config.delete_colour {
@@ -934,11 +953,17 @@ fn search_in_file(path: &Path, config: &Config, total_bytes_scanned: &std::sync:
                     .write_to(&mut out)
                     .ok();
                 let _ = write!(out, "] Scanned Files: ");
-                Coloured::new(&files.to_string(), Colour::Yellow).write_to(&mut out).ok();
+                Coloured::new(&files.to_string(), Colour::Yellow)
+                    .write_to(&mut out)
+                    .ok();
                 let _ = write!(out, " | Aggregate Volume: ");
-                Coloured::new(&formatted_total_size, Colour::Yellow).write_to(&mut out).ok();
+                Coloured::new(&formatted_total_size, Colour::Yellow)
+                    .write_to(&mut out)
+                    .ok();
                 let _ = write!(out, " | Average Size: ");
-                Coloured::new(&formatted_avg_size, Colour::Yellow).write_to(&mut out).ok();
+                Coloured::new(&formatted_avg_size, Colour::Yellow)
+                    .write_to(&mut out)
+                    .ok();
 
                 let _ = writeln!(
                     out,
@@ -1003,17 +1028,17 @@ fn search_in_file(path: &Path, config: &Config, total_bytes_scanned: &std::sync:
         let mut out = io::stdout().lock();
 
         let file_tree_color = if config.delete_colour {
-            Colour::Rgb(255, 255, 255)
+            Colour::Reset
         } else {
             Colour::Purple
         };
-        let _line_tree_color = if config.delete_colour {
-            Colour::Rgb(255, 255, 255)
+        let line_tree_color = if config.delete_colour {
+            Colour::Reset
         } else {
             Colour::Magenta
         };
-        let _leaf_color = if config.delete_colour {
-            Colour::Rgb(255, 255, 255)
+        let leaf_color = if config.delete_colour {
+            Colour::Reset
         } else {
             Colour::Orange
         };
@@ -1032,7 +1057,7 @@ fn search_in_file(path: &Path, config: &Config, total_bytes_scanned: &std::sync:
 
             if config.line_numbers && *line_num > 0 {
                 let _ = write!(out, "[");
-                Coloured::with_style(&line_num.to_string(), Colour::Magenta, Style::bold())
+                Coloured::with_style(&line_num.to_string(), line_tree_color, Style::bold())
                     .write_to(&mut out)?;
                 let _ = write!(out, "] ");
             }
@@ -1047,7 +1072,7 @@ fn search_in_file(path: &Path, config: &Config, total_bytes_scanned: &std::sync:
     if config.count_only && sink.match_count > 0 {
         let mut out = io::stdout().lock();
         let count_file_color = if config.delete_colour {
-            Colour::Rgb(255, 255, 255)
+            Colour::Reset
         } else {
             Colour::Purple
         };
